@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  @apply bg-ink-50 text-ink-900 antialiased;
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(49, 99, 255, 0.10), transparent 60%),
+    radial-gradient(900px 500px at 110% 0%, rgba(139, 92, 246, 0.10), transparent 60%),
+    linear-gradient(180deg, #f7f8fb 0%, #f3f5f9 100%);
+  background-attachment: fixed;
+}
+
+/* Shimmer for skeletons / loading bars */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.0) 0%,
+    rgba(255, 255, 255, 0.6) 50%,
+    rgba(255, 255, 255, 0.0) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2.2s linear infinite;
+}
+
+/* Animated gradient text */
+.gradient-text {
+  background: linear-gradient(90deg, #1f43f5, #8b5cf6, #1f43f5);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gradient 6s ease infinite;
+}
+
+/* Glassy card */
+.card {
+  @apply rounded-2xl bg-white/90 backdrop-blur border border-ink-100 shadow-soft;
+}
+
+/* Button base */
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl font-medium transition
+         focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:opacity-50 disabled:cursor-not-allowed;
+}
+.btn-primary {
+  @apply btn bg-ink-900 text-white hover:bg-ink-800 active:scale-[.98] px-4 py-2.5 shadow-soft;
+}
+.btn-ghost {
+  @apply btn bg-white text-ink-700 hover:bg-ink-100 border border-ink-200 px-3 py-1.5 text-sm;
+}
+.btn-chip {
+  @apply btn bg-ink-100 text-ink-700 hover:bg-ink-200 px-2.5 py-1 text-xs rounded-lg;
+}
+
+/* Tone tag */
+.tone-tag {
+  @apply inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full;
+}
+
+/* Editable look */
+.editable:hover {
+  @apply bg-brand-50/60 rounded-md;
+}
+.editable:focus {
+  @apply outline-none bg-white ring-2 ring-brand-300/60 rounded-md;
+}
+
+/* Hide number input arrows where used */
+input[type="url"]::-webkit-search-cancel-button { display: none; }
