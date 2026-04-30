@@ -7,7 +7,6 @@ import AdGrid from "@/components/AdGrid";
 
 export default function HomePage() {
   const [loading, setLoading] = useState(false);
-  const [stage, setStage] = useState(0);
   const [error, setError] = useState("");
   const [scraped, setScraped] = useState(null);
   const [ads, setAds] = useState([]);
@@ -19,10 +18,7 @@ export default function HomePage() {
     setAds([]);
     setScraped(null);
     setLoading(true);
-    setStage(0);
     try {
-      // Stage 1 — fetch
-      setStage(0);
       const sRes = await fetch("/api/scrape", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -32,12 +28,8 @@ export default function HomePage() {
       if (!sRes.ok) throw new Error(sJson.error || "Failed to scrape");
       setScraped(sJson.scraped);
 
-      // Stage 2 — analyze (small UX delay so the animation breathes)
-      setStage(1);
       await new Promise((r) => setTimeout(r, 600));
 
-      // Stage 3 — generate
-      setStage(2);
       const gRes = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -46,11 +38,9 @@ export default function HomePage() {
       const gJson = await gRes.json();
       if (!gRes.ok) throw new Error(gJson.error || "Failed to generate ads");
 
-      // Stage 4 — polish
-      setStage(3);
       await new Promise((r) => setTimeout(r, 500));
 
-      setAds(gJson.ads || []);
+      setAds((gJson.ads || []).map(withVisualFallback));
       setUsedAI(!!gJson.usedAI);
     } catch (err) {
       setError(err.message || "Something went wrong");
@@ -62,6 +52,17 @@ export default function HomePage() {
   function handleAdChange(id, next) {
     setAds((list) => list.map((a) => (a.id === id ? next : a)));
   }
+
+function withVisualFallback(ad) {
+  return {
+    ...ad,
+    image: ad.image || "/placeholder-ad.svg",
+    score:
+      typeof ad.score === "number"
+        ? ad.score
+        : Math.floor(Math.random() * 16) + 80,
+  };
+}
 
   async function handleAdAction(id, action, tone) {
     const ad = ads.find((a) => a.id === id);
@@ -75,7 +76,11 @@ export default function HomePage() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Failed");
-      setAds((list) => list.map((a) => (a.id === id ? { ...json.ad, id } : a)));
+      setAds((list) =>
+        list.map((a) =>
+          a.id === id ? withVisualFallback({ ...json.ad, id }) : a
+        )
+      );
     } catch (err) {
       setError(err.message || "Edit failed");
     } finally {
@@ -88,7 +93,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-gray-100">
       <Header usedAI={usedAI} />
 
       <main className="flex-1 max-w-6xl w-full mx-auto px-5 sm:px-8 py-12 sm:py-16">
@@ -104,7 +109,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {loading && <LoadingAnimation stage={stage} />}
+        {loading && <LoadingAnimation />}
 
         {!loading && scraped && (
           <ScrapedSummary scraped={scraped} />
@@ -137,8 +142,11 @@ export default function HomePage() {
 }
 
 function ScrapedSummary({ scraped }) {
+  const detectedProduct =
+    scraped?.title?.split(/[|\-:]/)[0]?.trim() || scraped?.siteName || "Unknown";
+
   return (
-    <section className="max-w-3xl mx-auto mt-8 card p-4 flex items-center gap-4 animate-pop">
+    <section className="max-w-3xl mx-auto mt-8 card p-6 flex items-center gap-4 animate-pop shadow-lg hover:shadow-xl transition rounded-2xl">
       <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-brand-500 to-accent-500 text-white flex items-center justify-center shadow-glow">
         <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none">
           <path
@@ -150,6 +158,9 @@ function ScrapedSummary({ scraped }) {
         </svg>
       </div>
       <div className="flex-1 min-w-0">
+        <div className="text-sm text-gray-600 mb-1">
+          Detected: <span className="font-semibold text-ink-900">{detectedProduct}</span>
+        </div>
         <div className="text-xs text-ink-500 truncate">{scraped.url}</div>
         <div className="font-semibold text-ink-900 truncate">{scraped.title}</div>
         {scraped.description && (

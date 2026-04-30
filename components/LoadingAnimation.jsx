@@ -2,22 +2,23 @@
 import { useEffect, useState } from "react";
 
 const STAGES = [
-  { label: "Fetching website…", detail: "Reading HTML and meta tags" },
-  { label: "Analyzing content…", detail: "Extracting brand voice & key value props" },
-  { label: "Crafting ad concepts…", detail: "Drafting tones, hooks, and CTAs" },
-  { label: "Polishing creatives…", detail: "Scoring and finalizing variants" },
+  { label: "Analyzing website...", detail: "Extracting key messaging and context" },
+  { label: "Understanding product...", detail: "Learning offer, audience, and value" },
+  {
+    label: "Generating high-converting ads...",
+    detail: "Creating hooks, body copy, and CTA variants",
+  },
 ];
 
-export default function LoadingAnimation({ stage }) {
+export default function LoadingAnimation() {
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 1200);
+    const id = setInterval(() => setTick((t) => t + 1), 1300);
     return () => clearInterval(id);
   }, []);
 
-  // If parent passes an explicit stage, honor it; otherwise auto-advance.
-  const idx = typeof stage === "number" ? stage : Math.min(STAGES.length - 1, tick);
+  const idx = tick % STAGES.length;
 
   return (
     <section className="max-w-3xl mx-auto mt-10 animate-pop">

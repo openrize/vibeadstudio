@@ -20,24 +20,17 @@ export default function UrlInput({ onGenerate, loading, disabled }) {
   return (
     <section className="w-full">
       <div className="max-w-3xl mx-auto text-center">
-        <div className="inline-flex items-center gap-2 rounded-full bg-white/70 border border-ink-100 px-3 py-1 text-xs text-ink-600 shadow-soft animate-pop">
-          <span className="h-1.5 w-1.5 rounded-full bg-brand-500 animate-pulse" />
-          New — generate ads from any URL
-        </div>
-
-        <h1 className="mt-5 text-4xl sm:text-5xl font-extrabold tracking-tight">
-          Turn any website into{" "}
-          <span className="gradient-text">scroll-stopping ads</span>
+        <h1 className="mt-3 text-4xl sm:text-5xl font-extrabold tracking-tight">
+          AI Ad Studio
         </h1>
         <p className="mt-4 text-ink-600 text-base sm:text-lg max-w-2xl mx-auto">
-          Paste a URL. We&apos;ll read the page and generate on-brand ad creatives
-          you can edit, regenerate, and ship — in seconds.
+          Generate high-converting ads from any URL
         </p>
       </div>
 
       <form
         onSubmit={submit}
-        className="max-w-3xl mx-auto mt-8 card p-2 sm:p-2.5 flex flex-col sm:flex-row gap-2 sm:items-center"
+        className="max-w-3xl mx-auto mt-8 card p-6 flex flex-col sm:flex-row gap-6 sm:items-center shadow-lg hover:shadow-xl transition rounded-2xl"
       >
         <div className="flex items-center gap-2 flex-1 px-3">
           <svg

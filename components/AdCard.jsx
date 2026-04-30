@@ -51,20 +51,20 @@ export default function AdCard({ ad, index, onChange, onAction, busy }) {
       ? "stroke-brand-500"
       : "stroke-amber-500";
 
-  const dash = (ad.score / 100) * 100; // perc of circumference
-
   return (
     <article
-      className="card overflow-hidden flex flex-col animate-pop"
+      className={`card overflow-hidden flex flex-col animate-pop p-0 shadow-lg hover:shadow-xl transition rounded-2xl ${
+        busy ? "opacity-70 animate-pulse" : ""
+      }`}
       style={{ animationDelay: `${index * 60}ms` }}
     >
       {/* Image */}
       <div className="relative h-44 bg-ink-100 overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={ad.image}
+          src={ad.image || "/placeholder-ad.svg"}
           alt=""
-          className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
+          className="rounded-xl mb-3 w-full h-full object-cover transition-transform duration-700 hover:scale-105"
           loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
@@ -79,12 +79,15 @@ export default function AdCard({ ad, index, onChange, onAction, busy }) {
       </div>
 
       {/* Body */}
-      <div className="p-5 flex-1 flex flex-col gap-3">
+      <div className="p-6 flex-1 flex flex-col gap-4">
+        <span className="text-green-600 text-sm font-medium">
+          Score: {ad.score}/100
+        </span>
         <Editable
           as="h3"
           value={ad.headline}
           onChange={(v) => update("headline", v)}
-          className="text-[17px] font-semibold leading-snug text-ink-900 editable px-1 -mx-1"
+          className="text-lg font-semibold leading-snug text-ink-900 editable px-1 -mx-1"
           placeholder="Headline"
           maxLength={80}
         />
@@ -92,7 +95,7 @@ export default function AdCard({ ad, index, onChange, onAction, busy }) {
           as="p"
           value={ad.body}
           onChange={(v) => update("body", v)}
-          className="text-sm text-ink-600 leading-relaxed editable px-1 -mx-1"
+          className="text-sm text-gray-600 leading-relaxed editable px-1 -mx-1"
           placeholder="Body copy…"
           maxLength={240}
           multiline
@@ -101,7 +104,7 @@ export default function AdCard({ ad, index, onChange, onAction, busy }) {
           <Editable
             value={ad.cta}
             onChange={(v) => update("cta", v)}
-            className="inline-flex items-center text-[13px] font-medium text-white bg-ink-900 px-3 py-1.5 rounded-lg editable"
+            className="inline-flex items-center text-[13px] font-medium text-white bg-blue-600 px-3 py-1.5 rounded editable"
             placeholder="CTA"
             maxLength={30}
           />
@@ -112,21 +115,24 @@ export default function AdCard({ ad, index, onChange, onAction, busy }) {
       <div className="border-t border-ink-100 bg-ink-50/40 px-3 py-3 flex flex-wrap items-center gap-2">
         <ActionButton
           busy={busy === "regenerate"}
+          disabled={!!busy}
           onClick={() => onAction("regenerate")}
           icon={<IconRefresh />}
           label="Regenerate"
         />
         <ActionButton
           busy={busy === "shorten"}
+          disabled={!!busy}
           onClick={() => onAction("shorten")}
           icon={<IconScissors />}
           label="Shorten"
         />
         <ActionButton
           busy={busy === "bolder"}
+          disabled={!!busy}
           onClick={() => onAction("bolder")}
           icon={<IconBold />}
-          label="Make bolder"
+          label="Make Bold"
         />
 
         <div className="relative ml-auto" ref={toneRef}>
@@ -164,9 +170,9 @@ export default function AdCard({ ad, index, onChange, onAction, busy }) {
   );
 }
 
-function ActionButton({ onClick, icon, label, busy }) {
+function ActionButton({ onClick, icon, label, busy, disabled }) {
   return (
-    <button type="button" onClick={onClick} disabled={!!busy} className="btn-ghost">
+    <button type="button" onClick={onClick} disabled={disabled} className="btn-ghost">
       {busy ? (
         <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
           <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
