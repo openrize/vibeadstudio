@@ -21,7 +21,19 @@ const TONE_STYLES = {
   Inspiring: "bg-brand-50 text-brand-700 border border-brand-200",
 };
 
-export default function AdCard({ ad, index, onChange, onAction, busy }) {
+export default function AdCard({
+  ad,
+  index,
+  onChange,
+  onAction,
+  busy,
+  isComparing,
+  isWinner,
+  isFavorite,
+  onToggleCompare,
+  onToggleWinner,
+  onToggleFavorite,
+}) {
   const [openTone, setOpenTone] = useState(false);
   const toneRef = useRef(null);
 
@@ -53,8 +65,10 @@ export default function AdCard({ ad, index, onChange, onAction, busy }) {
 
   return (
     <article
-      className={`card overflow-hidden flex flex-col animate-pop p-0 shadow-lg hover:shadow-xl transition rounded-2xl ${
+      className={`card overflow-hidden flex flex-col animate-pop p-0 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition rounded-2xl ${
         busy ? "opacity-70 animate-pulse" : ""
+      } ${isComparing ? "ring-2 ring-indigo-300" : ""} ${
+        isWinner ? "ring-2 ring-emerald-300" : ""
       }`}
       style={{ animationDelay: `${index * 60}ms` }}
     >
@@ -72,6 +86,18 @@ export default function AdCard({ ad, index, onChange, onAction, busy }) {
           <span className={`tone-tag ${TONE_STYLES[ad.tone] || TONE_STYLES.Minimal}`}>
             {ad.tone || "Tone"}
           </span>
+          <button
+            type="button"
+            onClick={onToggleFavorite}
+            className={`h-7 w-7 rounded-full border flex items-center justify-center ${
+              isFavorite
+                ? "bg-amber-50 border-amber-200 text-amber-600"
+                : "bg-white/90 border-white text-ink-600"
+            }`}
+            aria-label="Toggle favorite"
+          >
+            <IconStar />
+          </button>
         </div>
         <div className="absolute top-3 right-3">
           <ScoreBadge score={ad.score} ringColor={ringColor} scoreColor={scoreColor} />
@@ -80,9 +106,17 @@ export default function AdCard({ ad, index, onChange, onAction, busy }) {
 
       {/* Body */}
       <div className="p-6 flex-1 flex flex-col gap-4">
-        <span className="text-green-600 text-sm font-medium">
+        <span className="text-green-600 text-sm font-semibold">
           Score: {ad.score}/100
         </span>
+        <label className="inline-flex items-center gap-2 text-xs text-ink-600">
+          <input type="checkbox" checked={!!isComparing} onChange={onToggleCompare} />
+          Add to A/B compare
+        </label>
+        <label className="inline-flex items-center gap-2 text-xs text-emerald-700 font-medium">
+          <input type="checkbox" checked={!!isWinner} onChange={onToggleWinner} />
+          Mark as winner
+        </label>
         <Editable
           as="h3"
           value={ad.headline}
@@ -100,19 +134,20 @@ export default function AdCard({ ad, index, onChange, onAction, busy }) {
           maxLength={240}
           multiline
         />
-        <div className="mt-1">
+        <div className="mt-1 flex items-center justify-between gap-3">
           <Editable
             value={ad.cta}
             onChange={(v) => update("cta", v)}
-            className="inline-flex items-center text-[13px] font-medium text-white bg-blue-600 px-3 py-1.5 rounded editable"
+            className="inline-flex items-center text-[13px] font-medium text-white bg-blue-600 px-3 py-1.5 rounded-lg editable shadow-sm"
             placeholder="CTA"
             maxLength={30}
           />
+          <span className="text-xs text-ink-500">Tap to edit</span>
         </div>
       </div>
 
       {/* Actions */}
-      <div className="border-t border-ink-100 bg-ink-50/40 px-3 py-3 flex flex-wrap items-center gap-2">
+      <div className="border-t border-ink-100 bg-gradient-to-r from-white to-indigo-50/40 px-3 py-3 flex flex-wrap items-center gap-2">
         <ActionButton
           busy={busy === "regenerate"}
           disabled={!!busy}
@@ -172,7 +207,12 @@ export default function AdCard({ ad, index, onChange, onAction, busy }) {
 
 function ActionButton({ onClick, icon, label, busy, disabled }) {
   return (
-    <button type="button" onClick={onClick} disabled={disabled} className="btn-ghost">
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="btn-ghost hover:scale-[1.02] active:scale-[0.98]"
+    >
       {busy ? (
         <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
           <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
@@ -307,6 +347,13 @@ function IconWand() {
         strokeLinejoin="round"
         strokeLinecap="round"
       />
+    </svg>
+  );
+}
+function IconStar() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor" aria-hidden>
+      <path d="M12 3.8l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4L4.2 9.5l5.4-.8z" />
     </svg>
   );
 }

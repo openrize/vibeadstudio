@@ -1,6 +1,6 @@
 export default function Header({ usedAI }) {
   return (
-    <header className="w-full border-b border-ink-100/70 bg-white/70 backdrop-blur sticky top-0 z-30">
+    <header className="w-full border-b border-white/70 bg-white/70 backdrop-blur sticky top-0 z-30">
       <div className="max-w-6xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
         <a href="/" className="flex items-center gap-2.5">
           <span
@@ -26,6 +26,9 @@ export default function Header({ usedAI }) {
         </a>
 
         <div className="flex items-center gap-2">
+          <span className="hidden md:inline-flex text-xs font-medium px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
+            Premium Creative Mode
+          </span>
           <span
             className={`tone-tag ${
               usedAI
@@ -51,7 +54,7 @@ export default function Header({ usedAI }) {
             rel="noreferrer"
             className="hidden sm:inline-flex btn-ghost"
           >
-            Docs
+            GitHub
           </a>
         </div>
       </div>

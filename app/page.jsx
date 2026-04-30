@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import UrlInput from "@/components/UrlInput";
 import LoadingAnimation from "@/components/LoadingAnimation";
@@ -12,6 +12,36 @@ export default function HomePage() {
   const [ads, setAds] = useState([]);
   const [busyMap, setBusyMap] = useState({});
   const [usedAI, setUsedAI] = useState(false);
+  const [favorites, setFavorites] = useState([]);
+  const [recentUrls, setRecentUrls] = useState([]);
+  const [compareIds, setCompareIds] = useState([]);
+  const [winnerIds, setWinnerIds] = useState([]);
+  const [topPerformers, setTopPerformers] = useState([]);
+
+  useEffect(() => {
+    try {
+      const rawFav = localStorage.getItem("vibe-favorites");
+      const rawRecent = localStorage.getItem("vibe-recent-urls");
+      const rawTop = localStorage.getItem("vibe-top-performers");
+      if (rawFav) setFavorites(JSON.parse(rawFav));
+      if (rawRecent) setRecentUrls(JSON.parse(rawRecent));
+      if (rawTop) setTopPerformers(JSON.parse(rawTop));
+    } catch {
+      // Ignore malformed local storage data.
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("vibe-favorites", JSON.stringify(favorites));
+  }, [favorites]);
+
+  useEffect(() => {
+    localStorage.setItem("vibe-recent-urls", JSON.stringify(recentUrls));
+  }, [recentUrls]);
+
+  useEffect(() => {
+    localStorage.setItem("vibe-top-performers", JSON.stringify(topPerformers));
+  }, [topPerformers]);
 
   async function handleGenerate(rawUrl) {
     setError("");
@@ -27,6 +57,10 @@ export default function HomePage() {
       const sJson = await sRes.json();
       if (!sRes.ok) throw new Error(sJson.error || "Failed to scrape");
       setScraped(sJson.scraped);
+      setRecentUrls((prev) => {
+        const next = [rawUrl, ...prev.filter((u) => u !== rawUrl)];
+        return next.slice(0, 6);
+      });
 
       await new Promise((r) => setTimeout(r, 600));
 
@@ -41,6 +75,8 @@ export default function HomePage() {
       await new Promise((r) => setTimeout(r, 500));
 
       setAds((gJson.ads || []).map(withVisualFallback));
+      setCompareIds([]);
+      setWinnerIds([]);
       setUsedAI(!!gJson.usedAI);
     } catch (err) {
       setError(err.message || "Something went wrong");
@@ -53,16 +89,71 @@ export default function HomePage() {
     setAds((list) => list.map((a) => (a.id === id ? next : a)));
   }
 
-function withVisualFallback(ad) {
-  return {
-    ...ad,
-    image: ad.image || "/placeholder-ad.svg",
-    score:
-      typeof ad.score === "number"
-        ? ad.score
-        : Math.floor(Math.random() * 16) + 80,
-  };
-}
+  function withVisualFallback(ad) {
+    return {
+      ...ad,
+      image: ad.image || "/placeholder-ad.svg",
+      score:
+        typeof ad.score === "number"
+          ? ad.score
+          : Math.floor(Math.random() * 16) + 80,
+    };
+  }
+
+  function toggleFavorite(ad) {
+    setFavorites((prev) => {
+      const exists = prev.some((item) => item.id === ad.id);
+      if (exists) return prev.filter((item) => item.id !== ad.id);
+      return [
+        {
+          id: ad.id,
+          headline: ad.headline,
+          tone: ad.tone,
+          score: ad.score,
+        },
+        ...prev,
+      ].slice(0, 20);
+    });
+  }
+
+  function toggleCompare(id) {
+    setCompareIds((prev) => {
+      if (prev.includes(id)) return prev.filter((v) => v !== id);
+      if (prev.length >= 2) return [prev[1], id];
+      return [...prev, id];
+    });
+  }
+
+  function toggleWinner(id) {
+    setWinnerIds((prev) =>
+      prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
+    );
+  }
+
+  function saveWinnersToTopPerformers() {
+    const winners = ads.filter((ad) => winnerIds.includes(ad.id));
+    if (!winners.length) return;
+    setTopPerformers((prev) => {
+      const merged = [...winners, ...prev];
+      const unique = [];
+      for (const item of merged) {
+        if (!unique.some((u) => u.id === item.id)) unique.push(item);
+      }
+      return unique.slice(0, 20);
+    });
+  }
+
+  async function exportWinnerCopy() {
+    const winners = ads.filter((ad) => winnerIds.includes(ad.id));
+    if (!winners.length) return;
+    const text = winners
+      .map(
+        (ad, idx) =>
+          `Winner ${idx + 1}\nHeadline: ${ad.headline}\nBody: ${ad.body}\nCTA: ${ad.cta}\nTone: ${ad.tone}\nScore: ${ad.score}/100`
+      )
+      .join("\n\n---\n\n");
+    await navigator.clipboard.writeText(text);
+  }
 
   async function handleAdAction(id, action, tone) {
     const ad = ads.find((a) => a.id === id);
@@ -93,7 +184,7 @@ function withVisualFallback(ad) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 via-slate-50 to-indigo-50/30">
       <Header usedAI={usedAI} />
 
       <main className="flex-1 max-w-6xl w-full mx-auto px-5 sm:px-8 py-12 sm:py-16">
@@ -111,6 +202,10 @@ function withVisualFallback(ad) {
 
         {loading && <LoadingAnimation />}
 
+        {!loading && recentUrls.length > 0 && (
+          <RecentUrls urls={recentUrls} onSelect={handleGenerate} />
+        )}
+
         {!loading && scraped && (
           <ScrapedSummary scraped={scraped} />
         )}
@@ -121,7 +216,23 @@ function withVisualFallback(ad) {
             onChange={handleAdChange}
             onAction={handleAdAction}
             busyMap={busyMap}
+            compareIds={compareIds}
+            onToggleCompare={toggleCompare}
+            winnerIds={winnerIds}
+            onToggleWinner={toggleWinner}
+            onSaveWinners={saveWinnersToTopPerformers}
+            onExportWinners={exportWinnerCopy}
+            onToggleFavorite={toggleFavorite}
+            favoriteIds={favorites.map((f) => f.id)}
           />
+        )}
+
+        {!loading && favorites.length > 0 && (
+          <FavoritesStrip favorites={favorites} />
+        )}
+
+        {!loading && topPerformers.length > 0 && (
+          <TopPerformersStrip performers={topPerformers} />
         )}
 
         {!loading && ads.length === 0 && !error && !scraped && (
@@ -138,6 +249,74 @@ function withVisualFallback(ad) {
         </div>
       </footer>
     </div>
+  );
+}
+
+function RecentUrls({ urls, onSelect }) {
+  return (
+    <section className="max-w-3xl mx-auto mt-6">
+      <div className="text-xs font-semibold uppercase tracking-wide text-ink-500 mb-2">
+        Recent generations
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {urls.map((url) => (
+          <button
+            key={url}
+            type="button"
+            className="btn-chip"
+            onClick={() => onSelect(url)}
+          >
+            {url.replace(/^https?:\/\//, "")}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function FavoritesStrip({ favorites }) {
+  return (
+    <section className="mt-10">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-ink-800">Saved favorites</h3>
+        <span className="text-xs text-ink-500">{favorites.length} saved</span>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {favorites.slice(0, 4).map((item) => (
+          <div key={item.id} className="card p-4">
+            <div className="text-sm font-semibold text-ink-900 line-clamp-1">
+              {item.headline}
+            </div>
+            <div className="mt-1 text-xs text-ink-600">
+              {item.tone} · Score {item.score}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function TopPerformersStrip({ performers }) {
+  return (
+    <section className="mt-10">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-ink-800">Top performers</h3>
+        <span className="text-xs text-ink-500">{performers.length} saved winners</span>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {performers.slice(0, 4).map((item) => (
+          <div key={item.id} className="card p-4">
+            <div className="text-sm font-semibold text-ink-900 line-clamp-1">
+              {item.headline}
+            </div>
+            <div className="mt-1 text-xs text-ink-600">
+              {item.tone} · Score {item.score}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -206,7 +385,7 @@ function FeatureStrip() {
   return (
     <section className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-5">
       {items.map((it) => (
-        <div key={it.title} className="card p-5">
+        <div key={it.title} className="card p-5 hover:shadow-lg transition">
           <div className="h-9 w-9 rounded-xl bg-ink-900 text-white flex items-center justify-center mb-3">
             {it.icon}
           </div>

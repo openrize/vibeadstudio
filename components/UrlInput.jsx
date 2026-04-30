@@ -20,7 +20,10 @@ export default function UrlInput({ onGenerate, loading, disabled }) {
   return (
     <section className="w-full">
       <div className="max-w-3xl mx-auto text-center">
-        <h1 className="mt-3 text-4xl sm:text-5xl font-extrabold tracking-tight">
+        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border border-indigo-100 bg-indigo-50 text-indigo-700">
+          AI Creative Engine
+        </span>
+        <h1 className="mt-4 text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight">
           AI Ad Studio
         </h1>
         <p className="mt-4 text-ink-600 text-base sm:text-lg max-w-2xl mx-auto">
@@ -72,6 +75,11 @@ export default function UrlInput({ onGenerate, loading, disabled }) {
           )}
         </button>
       </form>
+
+      <div className="mt-4 flex items-center justify-center gap-2 text-xs text-ink-500">
+        <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+        Built for fast testing, creative iteration, and better ad hooks
+      </div>
 
       <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs text-ink-500">
         <span className="text-ink-400">Try:</span>
