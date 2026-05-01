@@ -48,14 +48,6 @@ export default function Header({ usedAI }) {
             />
             {usedAI ? "AI: OpenAI" : "Demo mode"}
           </span>
-          <a
-            href="https://github.com"
-            target="_blank"
-            rel="noreferrer"
-            className="hidden sm:inline-flex btn-ghost"
-          >
-            GitHub
-          </a>
         </div>
       </div>
     </header>
