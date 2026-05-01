@@ -45,7 +45,7 @@ export default function AdGrid({
         </button>
         <button
           type="button"
-          className="border px-4 py-2 rounded-lg text-sm bg-white hover:bg-gray-50 transition-colors"
+          className="border px-4 py-2 rounded-lg text-sm bg-white hover:bg-gray-100 transition-colors"
           onClick={onExportAds}
         >
           Export Ads

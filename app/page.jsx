@@ -196,7 +196,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 via-slate-50 to-indigo-50/30">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-gray-100">
       <Header usedAI={usedAI} />
 
       <main className="flex-1 max-w-6xl w-full mx-auto px-5 sm:px-8 py-12 sm:py-16">
