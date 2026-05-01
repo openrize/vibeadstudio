@@ -3,6 +3,7 @@ import AdCard from "./AdCard";
 
 export default function AdGrid({
   ads,
+  productName,
   onChange,
   onAction,
   busyMap,
@@ -11,7 +12,7 @@ export default function AdGrid({
   winnerIds = [],
   onToggleWinner,
   onSaveWinners,
-  onExportWinners,
+  onExportAds,
   onToggleFavorite,
   favoriteIds = [],
 }) {
@@ -23,6 +24,9 @@ export default function AdGrid({
           <h2 className="text-xl font-semibold text-ink-900">Generated ads</h2>
           <p className="text-sm text-ink-500">
             Click any text to edit. Use the actions below each card to refine.
+          </p>
+          <p className="text-sm text-gray-500 mb-4">
+            Detected: {productName}
           </p>
         </div>
         <span className="text-xs text-ink-600 font-medium px-2.5 py-1 rounded-full bg-white border border-ink-100">
@@ -39,8 +43,12 @@ export default function AdGrid({
         <button type="button" className="btn-ghost" onClick={onSaveWinners}>
           Save Winners
         </button>
-        <button type="button" className="btn-ghost" onClick={onExportWinners}>
-          Export Copy
+        <button
+          type="button"
+          className="border px-4 py-2 rounded-lg text-sm bg-white hover:bg-gray-50 transition-colors"
+          onClick={onExportAds}
+        >
+          Export Ads
         </button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

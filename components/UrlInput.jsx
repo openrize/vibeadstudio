@@ -19,14 +19,14 @@ export default function UrlInput({ onGenerate, loading, disabled }) {
 
   return (
     <section className="w-full">
-      <div className="max-w-3xl mx-auto text-center">
+      <div className="max-w-3xl mx-auto text-center bg-gradient-to-r from-black to-gray-800 text-white p-8 rounded-2xl mb-8">
         <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border border-indigo-100 bg-indigo-50 text-indigo-700">
           AI Creative Engine
         </span>
         <h1 className="mt-4 text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight">
           AI Ad Studio
         </h1>
-        <p className="mt-4 text-ink-600 text-base sm:text-lg max-w-2xl mx-auto">
+        <p className="mt-4 text-gray-200 text-base sm:text-lg max-w-2xl mx-auto">
           Generate high-converting ads from any URL
         </p>
       </div>

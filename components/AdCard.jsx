@@ -10,6 +10,7 @@ const TONES = [
   "Urgent",
   "Inspiring",
 ];
+const QUICK_TONES = ["Bold", "Premium", "Playful"];
 
 const TONE_STYLES = {
   Bold: "bg-rose-50 text-rose-700 border border-rose-200",
@@ -35,6 +36,8 @@ export default function AdCard({
   onToggleFavorite,
 }) {
   const [openTone, setOpenTone] = useState(false);
+  const [flash, setFlash] = useState(false);
+  const [copying, setCopying] = useState(false);
   const toneRef = useRef(null);
 
   useEffect(() => {
@@ -45,8 +48,24 @@ export default function AdCard({
     return () => document.removeEventListener("mousedown", onDoc);
   }, []);
 
+  useEffect(() => {
+    setFlash(true);
+    const id = setTimeout(() => setFlash(false), 400);
+    return () => clearTimeout(id);
+  }, [ad.headline, ad.body, ad.cta, ad.tone, ad.score, ad.image]);
+
   function update(field, value) {
     onChange({ ...ad, [field]: value });
+  }
+
+  async function handleCopy() {
+    try {
+      setCopying(true);
+      const content = `Headline: ${ad.headline}\nBody: ${ad.body}\nCTA: ${ad.cta}\nScore: ${ad.score}/100`;
+      await navigator.clipboard.writeText(content);
+    } finally {
+      setTimeout(() => setCopying(false), 900);
+    }
   }
 
   const scoreColor =
@@ -65,20 +84,20 @@ export default function AdCard({
 
   return (
     <article
-      className={`card overflow-hidden flex flex-col animate-pop p-0 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition rounded-2xl ${
-        busy ? "opacity-70 animate-pulse" : ""
+      className={`relative bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl border border-gray-100 transition-all duration-200 ease-out hover:scale-[1.01] overflow-hidden flex flex-col ${
+        busy ? "opacity-80" : ""
       } ${isComparing ? "ring-2 ring-indigo-300" : ""} ${
         isWinner ? "ring-2 ring-emerald-300" : ""
-      }`}
+      } ${flash ? "animate-fade-in" : ""}`}
       style={{ animationDelay: `${index * 60}ms` }}
     >
       {/* Image */}
-      <div className="relative h-44 bg-ink-100 overflow-hidden">
+      <div className="relative h-44 bg-ink-100 overflow-hidden rounded-xl mb-4">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={ad.image || "/placeholder-ad.svg"}
+          src={ad.image || "https://via.placeholder.com/400x200"}
           alt=""
-          className="rounded-xl mb-3 w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+          className="rounded-xl mb-4 w-full h-full object-cover transition-transform duration-700 hover:scale-105"
           loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
@@ -105,8 +124,8 @@ export default function AdCard({
       </div>
 
       {/* Body */}
-      <div className="p-6 flex-1 flex flex-col gap-4">
-        <span className="text-green-600 text-sm font-semibold">
+      <div className="flex-1 flex flex-col gap-4">
+        <span className="text-green-600 text-sm font-semibold mb-1">
           Score: {ad.score}/100
         </span>
         <label className="inline-flex items-center gap-2 text-xs text-ink-600">
@@ -121,7 +140,7 @@ export default function AdCard({
           as="h3"
           value={ad.headline}
           onChange={(v) => update("headline", v)}
-          className="text-lg font-semibold leading-snug text-ink-900 editable px-1 -mx-1"
+          className="text-lg font-semibold leading-snug text-ink-900 editable px-1 -mx-1 mb-1"
           placeholder="Headline"
           maxLength={80}
         />
@@ -129,25 +148,24 @@ export default function AdCard({
           as="p"
           value={ad.body}
           onChange={(v) => update("body", v)}
-          className="text-sm text-gray-600 leading-relaxed editable px-1 -mx-1"
+          className="text-sm text-gray-600 leading-relaxed editable px-1 -mx-1 mb-2"
           placeholder="Body copy…"
           maxLength={240}
           multiline
         />
-        <div className="mt-1 flex items-center justify-between gap-3">
-          <Editable
-            value={ad.cta}
-            onChange={(v) => update("cta", v)}
-            className="inline-flex items-center text-[13px] font-medium text-white bg-blue-600 px-3 py-1.5 rounded-lg editable shadow-sm"
-            placeholder="CTA"
-            maxLength={30}
-          />
-          <span className="text-xs text-ink-500">Tap to edit</span>
+        <div className="mt-1 flex items-center justify-between gap-4">
+          <button
+            type="button"
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm"
+          >
+            {ad.cta}
+          </button>
+          <span className="text-xs text-ink-500">Headline/body are editable</span>
         </div>
       </div>
 
       {/* Actions */}
-      <div className="border-t border-ink-100 bg-gradient-to-r from-white to-indigo-50/40 px-3 py-3 flex flex-wrap items-center gap-2">
+      <div className="border-t border-ink-100 bg-gradient-to-r from-white to-indigo-50/40 px-3 py-3 flex flex-wrap items-center gap-4 mt-4">
         <ActionButton
           busy={busy === "regenerate"}
           disabled={!!busy}
@@ -169,6 +187,30 @@ export default function AdCard({
           icon={<IconBold />}
           label="Make Bold"
         />
+        <ActionButton
+          busy={false}
+          disabled={!!busy}
+          onClick={handleCopy}
+          icon={<IconCopy />}
+          label={copying ? "Copied" : "Copy"}
+        />
+        <div className="w-full flex flex-wrap gap-2">
+          {QUICK_TONES.map((tone) => (
+            <button
+              key={tone}
+              type="button"
+              disabled={!!busy}
+              onClick={() => onAction("tone", tone)}
+              className={`px-3 py-1.5 rounded-lg text-xs border transition ${
+                ad.tone === tone
+                  ? "bg-indigo-600 text-white border-indigo-600"
+                  : "bg-white text-ink-700 border-ink-200 hover:bg-ink-50"
+              }`}
+            >
+              {tone === "Premium" ? "Professional" : tone}
+            </button>
+          ))}
+        </div>
 
         <div className="relative ml-auto" ref={toneRef}>
           <button
@@ -201,6 +243,17 @@ export default function AdCard({
           )}
         </div>
       </div>
+      {busy === "regenerate" && (
+        <div className="absolute inset-0 bg-white/55 backdrop-blur-[1px] flex items-center justify-center pointer-events-none">
+          <div className="inline-flex items-center gap-2 text-sm font-medium text-ink-700 bg-white border border-ink-200 rounded-lg px-3 py-1.5 shadow-soft">
+            <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
+              <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+            </svg>
+            Refreshing ad...
+          </div>
+        </div>
+      )}
     </article>
   );
 }
@@ -354,6 +407,14 @@ function IconStar() {
   return (
     <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor" aria-hidden>
       <path d="M12 3.8l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4L4.2 9.5l5.4-.8z" />
+    </svg>
+  );
+}
+function IconCopy() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden>
+      <rect x="9" y="9" width="10" height="10" rx="2" stroke="currentColor" strokeWidth="1.8" />
+      <rect x="5" y="5" width="10" height="10" rx="2" stroke="currentColor" strokeWidth="1.8" />
     </svg>
   );
 }

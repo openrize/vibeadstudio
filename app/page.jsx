@@ -17,6 +17,8 @@ export default function HomePage() {
   const [compareIds, setCompareIds] = useState([]);
   const [winnerIds, setWinnerIds] = useState([]);
   const [topPerformers, setTopPerformers] = useState([]);
+  const productName =
+    scraped?.title?.split(/[|\-:]/)[0]?.trim() || scraped?.siteName || "Unknown product";
 
   useEffect(() => {
     try {
@@ -92,7 +94,7 @@ export default function HomePage() {
   function withVisualFallback(ad) {
     return {
       ...ad,
-      image: ad.image || "/placeholder-ad.svg",
+      image: ad.image || "https://via.placeholder.com/400x200",
       score:
         typeof ad.score === "number"
           ? ad.score
@@ -143,16 +145,26 @@ export default function HomePage() {
     });
   }
 
-  async function exportWinnerCopy() {
-    const winners = ads.filter((ad) => winnerIds.includes(ad.id));
-    if (!winners.length) return;
-    const text = winners
-      .map(
-        (ad, idx) =>
-          `Winner ${idx + 1}\nHeadline: ${ad.headline}\nBody: ${ad.body}\nCTA: ${ad.cta}\nTone: ${ad.tone}\nScore: ${ad.score}/100`
-      )
-      .join("\n\n---\n\n");
-    await navigator.clipboard.writeText(text);
+  function toCsvValue(value) {
+    const safe = String(value ?? "").replace(/"/g, '""');
+    return `"${safe}"`;
+  }
+
+  function exportCSV() {
+    if (!ads.length) return;
+    const rows = ads.map((ad) =>
+      [ad.headline, ad.body, ad.cta, ad.score].map(toCsvValue).join(",")
+    );
+    const csvContent = ["Headline,Body,CTA,Score", ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "ads.csv";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   }
 
   async function handleAdAction(id, action, tone) {
@@ -213,6 +225,7 @@ export default function HomePage() {
         {!loading && ads?.length > 0 && (
           <AdGrid
             ads={ads}
+            productName={productName}
             onChange={handleAdChange}
             onAction={handleAdAction}
             busyMap={busyMap}
@@ -221,7 +234,7 @@ export default function HomePage() {
             winnerIds={winnerIds}
             onToggleWinner={toggleWinner}
             onSaveWinners={saveWinnersToTopPerformers}
-            onExportWinners={exportWinnerCopy}
+            onExportAds={exportCSV}
             onToggleFavorite={toggleFavorite}
             favoriteIds={favorites.map((f) => f.id)}
           />

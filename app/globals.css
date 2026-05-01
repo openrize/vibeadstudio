@@ -45,12 +45,17 @@ body {
 /* Glassy card */
 .card {
   @apply rounded-2xl bg-white/90 backdrop-blur border border-white/70 shadow-soft;
+  transition: box-shadow 220ms cubic-bezier(0.2, 0.65, 0.2, 1),
+    transform 220ms cubic-bezier(0.2, 0.65, 0.2, 1),
+    border-color 220ms cubic-bezier(0.2, 0.65, 0.2, 1);
 }
 
 /* Button base */
 .btn {
   @apply inline-flex items-center justify-center gap-2 rounded-xl font-medium transition
          focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:opacity-50 disabled:cursor-not-allowed;
+  transition-duration: 180ms;
+  transition-timing-function: cubic-bezier(0.2, 0.65, 0.2, 1);
 }
 .btn-primary {
   @apply btn text-white active:scale-[.98] px-4 py-2.5 shadow-soft;
@@ -86,3 +91,29 @@ body {
 
 /* Hide number input arrows where used */
 input[type="url"]::-webkit-search-cancel-button { display: none; }
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeInUp 0.35s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .card,
+  .animate-fade-in,
+  .shimmer,
+  .gradient-text {
+    animation: none !important;
+    transition: none !important;
+  }
+}

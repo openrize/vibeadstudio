@@ -5,7 +5,7 @@ const STAGES = [
   { label: "Analyzing website...", detail: "Extracting key messaging and context" },
   { label: "Understanding product...", detail: "Learning offer, audience, and value" },
   {
-    label: "Generating high-converting ads...",
+    label: "Generating ads...",
     detail: "Creating hooks, body copy, and CTA variants",
   },
 ];
@@ -14,7 +14,7 @@ export default function LoadingAnimation() {
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 1300);
+    const id = setInterval(() => setTick((t) => t + 1), 1200);
     return () => clearInterval(id);
   }, []);
 
@@ -50,7 +50,7 @@ export default function LoadingAnimation() {
         <div className="mt-5">
           <div className="h-2 w-full bg-ink-100 rounded-full overflow-hidden">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-brand-500 via-accent-500 to-brand-500 bg-[length:200%_100%] animate-gradient transition-all duration-700"
+              className="h-full rounded-full bg-gradient-to-r from-brand-500 via-accent-500 to-brand-500 bg-[length:200%_100%] animate-gradient transition-all duration-500 ease-out"
               style={{ width: `${((idx + 1) / STAGES.length) * 100}%` }}
             />
           </div>
