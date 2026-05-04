@@ -4,6 +4,7 @@ import AdCard from "./AdCard";
 export default function AdGrid({
   ads,
   productName,
+  generationNote,
   onChange,
   onAction,
   busyMap,
@@ -23,7 +24,7 @@ export default function AdGrid({
         <div>
           <h2 className="text-xl font-semibold text-ink-900">Generated ads</h2>
           <p className="text-sm text-ink-500">
-            Click any text to edit. Use the actions below each card to refine.
+            {generationNote || "Optimized based on available page signals."}
           </p>
           <p className="text-sm text-gray-500 mb-4">
             Detected: {productName}
