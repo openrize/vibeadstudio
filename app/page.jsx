@@ -64,7 +64,9 @@ export default function HomePage() {
         scrapedPayload = sJson.scraped;
       } else {
         scrapedPayload = buildFallbackScraped(rawUrl);
-        setGenerationNote("Optimized based on available page signals.");
+        setGenerationNote(
+          "Optimized based on website content and industry patterns."
+        );
       }
 
       setScraped(scrapedPayload);
@@ -91,13 +93,18 @@ export default function HomePage() {
       setCompareIds([]);
       setWinnerIds([]);
       setUsedAI(!!gJson.usedAI && gRes.ok);
-      setGenerationNote((prev) => prev || "Optimized based on available page signals.");
+      setGenerationNote(
+        (prev) =>
+          prev || "Optimized based on website content and industry patterns."
+      );
     } catch (err) {
       const fallback = buildFallbackScraped(rawUrl);
       setScraped(fallback);
       setAds(buildClientFallbackAds(fallback, 4).map(withVisualFallback));
       setUsedAI(false);
-      setGenerationNote("Optimized based on available page signals.");
+      setGenerationNote(
+        "Optimized based on website content and industry patterns."
+      );
       setError("");
     } finally {
       setLoading(false);
@@ -301,32 +308,51 @@ function buildFallbackScraped(rawUrl) {
 }
 
 function buildClientFallbackAds(scraped, count = 4) {
-  const brand = scraped?.siteName || "Your brand";
+  const brand = scraped?.siteName || "your brand";
+  const b = formatBrandDisplay(brand);
   const templates = [
     {
-      headline: "Boost Your Brand Visibility",
-      body: "Create high-converting ads tailored to your audience in seconds.",
-      cta: "Get Started",
+      headline: `${b} — offers grounded in your URL and page signals`,
+      body: "Lead with a clear promise and specifics buyers recognize, not generic filler—so the ad feels written for your site.",
+      cta: "See what’s new",
     },
     {
-      headline: `Discover ${brand} Today`,
-      body: "Highlight what makes your offer different and convert attention into action.",
-      cta: "Explore Now",
+      headline: `Explore what’s live at ${b} right now`,
+      body: "Highlight timely inventory, services, or launches visitors care about, with a CTA that matches the next step on your page.",
+      cta: "View details",
     },
     {
-      headline: "Turn Clicks Into Customers",
-      body: "Launch polished ad copy built to drive more engagement and qualified leads.",
-      cta: "Launch Campaign",
+      headline: `Turn browsers into buyers with ${b}`,
+      body: "Pair proof points from your headline and meta description with action-led copy that respects what you actually sell.",
+      cta: "Get started",
+    },
+    {
+      headline: `Campaign-ready creative for ${b}`,
+      body: "Structured like paid social: sharp hook, concrete benefit, and a button label that sounds like a real business, not a template.",
+      cta: "Shop the offer",
     },
   ];
 
-  return Array.from({ length: Math.max(3, count) }).map((_, i) => ({
+  return Array.from({ length: Math.max(4, count) }).map((_, i) => ({
     id: `fallback-${Date.now()}-${i}`,
     ...templates[i % templates.length],
     tone: ["Bold", "Friendly", "Premium", "Urgent"][i % 4],
     score: 88 + (i % 5),
     image: `https://picsum.photos/seed/${encodeURIComponent(`${brand}-${i}`)}/800/520`,
   }));
+}
+
+function formatBrandDisplay(raw) {
+  if (!raw) return "Your brand";
+  let s = String(raw).trim().replace(/^www\./, "");
+  s = s.split(".")[0] || s;
+  s = s.replace(/[-_]+/g, " ");
+  s = s.replace(/([a-z])([A-Z])/g, "$1 $2");
+  return s
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ");
 }
 
 function RecentUrls({ urls, onSelect }) {

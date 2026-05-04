@@ -23,10 +23,14 @@ export default function AdGrid({
       <div className="flex items-end justify-between mb-5 px-1">
         <div>
           <h2 className="text-xl font-semibold text-ink-900">Generated ads</h2>
-          <p className="text-sm text-ink-500">
-            {generationNote || "Optimized based on available page signals."}
+          <p className="text-sm font-medium text-ink-800 mt-1">
+            {generationNote ||
+              "Optimized based on website content and industry patterns."}
           </p>
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-ink-500 mt-1">
+            Click any text to edit. Use the actions below each card to refine.
+          </p>
+          <p className="text-sm text-gray-500 mb-4 mt-1">
             Detected: {productName}
           </p>
         </div>
@@ -41,12 +45,16 @@ export default function AdGrid({
         <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
           Winners: {winnerIds.length}
         </span>
-        <button type="button" className="btn-ghost" onClick={onSaveWinners}>
+        <button
+          type="button"
+          className="btn-ghost transition-transform duration-150 active:scale-[0.97]"
+          onClick={onSaveWinners}
+        >
           Save Winners
         </button>
         <button
           type="button"
-          className="border px-4 py-2 rounded-lg text-sm bg-white hover:bg-gray-100 transition-colors"
+          className="border px-4 py-2 rounded-lg text-sm font-medium bg-white hover:bg-gray-100 transition-all duration-150 active:scale-[0.97] hover:shadow-md"
           onClick={onExportAds}
         >
           Export Ads

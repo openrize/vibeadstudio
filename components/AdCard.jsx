@@ -84,12 +84,13 @@ export default function AdCard({
 
   return (
     <article
-      className={`relative bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl border border-gray-100 transition-all duration-200 ease-out hover:scale-[1.01] overflow-hidden flex flex-col ${
-        busy ? "opacity-80" : ""
-      } ${isComparing ? "ring-2 ring-indigo-300" : ""} ${
+      className={`relative bg-white p-6 rounded-2xl shadow-lg border border-gray-100/90 overflow-hidden flex flex-col
+        transition-all duration-300 ease-out
+        hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.01] hover:border-brand-200/70
+        ${busy ? "opacity-80" : ""} ${isComparing ? "ring-2 ring-indigo-300" : ""} ${
         isWinner ? "ring-2 ring-emerald-300" : ""
-      } ${flash ? "animate-fade-in" : ""}`}
-      style={{ animationDelay: `${index * 60}ms` }}
+      } animate-ad-card ${flash ? "ring-2 ring-brand-400/55" : ""}`}
+      style={{ animationDelay: `${index * 75}ms` }}
     >
       {/* Image */}
       <div className="relative h-44 bg-ink-100 overflow-hidden rounded-xl mb-4">
@@ -156,7 +157,12 @@ export default function AdCard({
         <div className="mt-1 flex items-center justify-between gap-4">
           <button
             type="button"
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm"
+            className="inline-flex items-center justify-center rounded-xl px-5 py-3 text-sm font-semibold text-white shadow-lg
+              transition-all duration-200 ease-out
+              bg-gradient-to-br from-blue-700 via-blue-600 to-violet-600
+              hover:brightness-110 hover:shadow-xl hover:scale-[1.03]
+              active:scale-[0.96] active:shadow-md
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2"
           >
             {ad.cta}
           </button>
@@ -201,7 +207,7 @@ export default function AdCard({
               type="button"
               disabled={!!busy}
               onClick={() => onAction("tone", tone)}
-              className={`px-3 py-1.5 rounded-lg text-xs border transition ${
+              className={`px-3 py-1.5 rounded-lg text-xs border transition-all duration-150 active:scale-[0.96] ${
                 ad.tone === tone
                   ? "bg-indigo-600 text-white border-indigo-600"
                   : "bg-white text-ink-700 border-ink-200 hover:bg-ink-50"
@@ -264,7 +270,7 @@ function ActionButton({ onClick, icon, label, busy, disabled }) {
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="btn-ghost hover:scale-[1.02] active:scale-[0.98]"
+      className="btn-ghost transition-transform duration-150 ease-out hover:scale-[1.02] active:scale-[0.96]"
     >
       {busy ? (
         <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
