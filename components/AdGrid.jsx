@@ -4,6 +4,7 @@ import AdCard from "./AdCard";
 export default function AdGrid({
   ads,
   productName,
+  intelligence,
   generationNote,
   onChange,
   onAction,
@@ -23,6 +24,20 @@ export default function AdGrid({
       <div className="flex items-end justify-between mb-5 px-1">
         <div>
           <h2 className="text-xl font-semibold text-ink-900">Generated ads</h2>
+          <div className="mt-2 rounded-xl border border-brand-100 bg-brand-50/60 px-3 py-2 text-xs text-ink-700">
+            <div>
+              <span className="font-semibold text-ink-900">Detected Industry:</span>{" "}
+              {intelligence?.industry || "General Business"}
+            </div>
+            <div>
+              <span className="font-semibold text-ink-900">Target Audience:</span>{" "}
+              {intelligence?.audience || "Prospective customers"}
+            </div>
+            <div>
+              <span className="font-semibold text-ink-900">Tone:</span>{" "}
+              {intelligence?.tone || "Clarity / Trust / Action"}
+            </div>
+          </div>
           <p className="text-sm font-medium text-ink-800 mt-1">
             {generationNote ||
               "Optimized based on website content and industry patterns."}

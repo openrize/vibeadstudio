@@ -126,6 +126,9 @@ export default function AdCard({
 
       {/* Body */}
       <div className="flex-1 flex flex-col gap-4">
+        <span className="inline-flex w-fit rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 px-2.5 py-1 text-[11px] font-semibold">
+          {ad.creativeConfidence || "Optimized for conversions"}
+        </span>
         <span className="text-green-600 text-sm font-semibold mb-1">
           Score: {ad.score}/100
         </span>
@@ -157,7 +160,7 @@ export default function AdCard({
         <div className="mt-1 flex items-center justify-between gap-4">
           <button
             type="button"
-            className="inline-flex items-center justify-center rounded-xl px-5 py-3 text-sm font-semibold text-white shadow-lg
+            className="inline-flex items-center justify-center rounded-xl px-5 py-3 text-sm font-semibold text-white shadow-lg min-h-11
               transition-all duration-200 ease-out
               bg-gradient-to-br from-blue-700 via-blue-600 to-violet-600
               hover:brightness-110 hover:shadow-xl hover:scale-[1.03]
@@ -171,35 +174,41 @@ export default function AdCard({
       </div>
 
       {/* Actions */}
-      <div className="border-t border-ink-100 bg-gradient-to-r from-white to-indigo-50/40 px-3 py-3 flex flex-wrap items-center gap-4 mt-4">
-        <ActionButton
-          busy={busy === "regenerate"}
-          disabled={!!busy}
-          onClick={() => onAction("regenerate")}
-          icon={<IconRefresh />}
-          label="Regenerate"
-        />
-        <ActionButton
+      <div className="border-t border-ink-100 bg-gradient-to-r from-white to-indigo-50/40 px-3 py-3 flex flex-col gap-3 mt-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <PrimaryActionButton
+            busy={false}
+            disabled={!!busy}
+            onClick={handleCopy}
+            icon={<IconCopy />}
+            label={copying ? "Copied" : "Copy"}
+          />
+          <PrimaryActionButton
+            busy={busy === "regenerate"}
+            disabled={!!busy}
+            onClick={() => onAction("regenerate")}
+            icon={<IconRefresh />}
+            label="Regenerate"
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <ActionButton
           busy={busy === "shorten"}
           disabled={!!busy}
           onClick={() => onAction("shorten")}
           icon={<IconScissors />}
           label="Shorten"
-        />
-        <ActionButton
+          />
+          <ActionButton
           busy={busy === "bolder"}
           disabled={!!busy}
           onClick={() => onAction("bolder")}
           icon={<IconBold />}
           label="Make Bold"
-        />
-        <ActionButton
-          busy={false}
-          disabled={!!busy}
-          onClick={handleCopy}
-          icon={<IconCopy />}
-          label={copying ? "Copied" : "Copy"}
-        />
+          />
+        </div>
+
         <div className="w-full flex flex-wrap gap-2">
           {QUICK_TONES.map((tone) => (
             <button
@@ -256,7 +265,7 @@ export default function AdCard({
               <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
               <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
             </svg>
-            Refreshing ad...
+            Generating new variation...
           </div>
         </div>
       )}
@@ -271,6 +280,27 @@ function ActionButton({ onClick, icon, label, busy, disabled }) {
       onClick={onClick}
       disabled={disabled}
       className="btn-ghost transition-transform duration-150 ease-out hover:scale-[1.02] active:scale-[0.96]"
+    >
+      {busy ? (
+        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
+          <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+        </svg>
+      ) : (
+        icon
+      )}
+      <span>{label}</span>
+    </button>
+  );
+}
+
+function PrimaryActionButton({ onClick, icon, label, busy, disabled }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-3.5 py-2 text-sm font-semibold text-indigo-800 transition-all duration-150 hover:bg-indigo-100 active:scale-[0.97] disabled:opacity-60"
     >
       {busy ? (
         <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">

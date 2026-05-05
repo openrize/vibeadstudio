@@ -20,6 +20,7 @@ export default function HomePage() {
   const [topPerformers, setTopPerformers] = useState([]);
   const productName =
     scraped?.title?.split(/[|\-:]/)[0]?.trim() || scraped?.siteName || "Unknown product";
+  const intelligence = getIntelligenceLayer(scraped);
 
   useEffect(() => {
     try {
@@ -250,6 +251,7 @@ export default function HomePage() {
           <AdGrid
             ads={ads}
             productName={productName}
+            intelligence={intelligence}
             generationNote={generationNote}
             onChange={handleAdChange}
             onAction={handleAdAction}
@@ -453,6 +455,57 @@ function ScrapedSummary({ scraped }) {
       </div>
     </section>
   );
+}
+
+function getIntelligenceLayer(scraped) {
+  if (!scraped) {
+    return {
+      industry: "Not detected yet",
+      audience: "Not detected yet",
+      tone: "Not detected yet",
+    };
+  }
+  const text = [scraped.url || "", scraped.title || "", scraped.description || ""].join(" ").toLowerCase();
+  if (text.includes("cadillac")) {
+    return {
+      industry: "Automotive (Luxury Vehicles)",
+      audience: "High-income buyers / local dealership customers",
+      tone: "Premium / Performance / Trust",
+    };
+  }
+  if (/(automotive|dealer|vehicle|suv|sedan|car)/.test(text)) {
+    return {
+      industry: "Automotive",
+      audience: "In-market drivers and local buyers",
+      tone: "Performance / Trust / Value",
+    };
+  }
+  if (/(real estate|property|homes|realtor|mortgage)/.test(text)) {
+    return {
+      industry: "Real Estate",
+      audience: "Home buyers and sellers",
+      tone: "Trust / Guidance / Action",
+    };
+  }
+  if (/(restaurant|food|dining|cafe|menu|delivery)/.test(text)) {
+    return {
+      industry: "Food & Hospitality",
+      audience: "Local diners and online order customers",
+      tone: "Taste / Convenience / Urgency",
+    };
+  }
+  if (/(saas|software|platform|app|cloud|automation|api)/.test(text)) {
+    return {
+      industry: "Software / SaaS",
+      audience: "Operators, teams, and decision-makers",
+      tone: "Efficiency / Credibility / Growth",
+    };
+  }
+  return {
+    industry: "General Business",
+    audience: "Prospective customers and local buyers",
+    tone: "Clarity / Trust / Action",
+  };
 }
 
 function FeatureStrip() {
