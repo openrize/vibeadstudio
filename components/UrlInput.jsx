@@ -24,10 +24,10 @@ export default function UrlInput({ onGenerate, loading, disabled }) {
           AI Creative Engine
         </span>
         <h1 className="mt-4 text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight">
-          AI Ad Studio
+          AI Campaign Studio
         </h1>
         <p className="mt-4 text-gray-200 text-base sm:text-lg max-w-2xl mx-auto">
-          Generate high-converting ads from any URL
+          Turn any URL into five distinct, industry-aware campaign concepts—with strategy, reasoning, and export-ready copy.
         </p>
       </div>
 

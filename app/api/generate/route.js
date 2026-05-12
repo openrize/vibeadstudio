@@ -16,12 +16,12 @@ export async function POST(req) {
         { status: 400 }
       );
     }
-    const count = clamp(parseInt(body.count, 10) || 4, 4, 5);
-    const ads = await generateAds(scraped, count);
-    return NextResponse.json({ ads, usedAI: hasAI() });
+    const count = clamp(parseInt(body.count, 10) || 5, 4, 5);
+    const { ads, brandIntel } = await generateAds(scraped, count);
+    return NextResponse.json({ ads, campaigns: ads, brandIntel, usedAI: hasAI() });
   } catch (err) {
     return NextResponse.json(
-      { error: err?.message || "Failed to generate ads." },
+      { error: err?.message || "Failed to generate campaigns." },
       { status: 500 }
     );
   }

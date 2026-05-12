@@ -4,7 +4,6 @@ import AdCard from "./AdCard";
 export default function AdGrid({
   ads,
   productName,
-  intelligence,
   generationNote,
   onChange,
   onAction,
@@ -21,61 +20,47 @@ export default function AdGrid({
   if (!ads?.length) return null;
   return (
     <section className="mt-10">
-      <div className="flex items-end justify-between mb-5 px-1">
-        <div>
-          <h2 className="text-xl font-semibold text-ink-900">Generated ads</h2>
-          <div className="mt-2 rounded-xl border border-brand-100 bg-brand-50/60 px-3 py-2 text-xs text-ink-700">
-            <div>
-              <span className="font-semibold text-ink-900">Detected Industry:</span>{" "}
-              {intelligence?.industry || "General Business"}
-            </div>
-            <div>
-              <span className="font-semibold text-ink-900">Target Audience:</span>{" "}
-              {intelligence?.audience || "Prospective customers"}
-            </div>
-            <div>
-              <span className="font-semibold text-ink-900">Tone:</span>{" "}
-              {intelligence?.tone || "Clarity / Trust / Action"}
-            </div>
-          </div>
-          <p className="text-sm font-medium text-ink-800 mt-1">
-            {generationNote ||
-              "Optimized based on website content and industry patterns."}
+      <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-6 px-1">
+        <div className="max-w-3xl">
+          <h2 className="text-2xl font-bold text-ink-900 tracking-tight">Campaign concepts</h2>
+          <p className="text-sm text-ink-600 mt-2 leading-relaxed">
+            Five strategic angles tailored to{" "}
+            <span className="font-semibold text-ink-900">{productName}</span>—each with a different
+            structure, CTA, and proof style so outputs diverge meaningfully between URLs.
           </p>
-          <p className="text-sm text-ink-500 mt-1">
-            Click any text to edit. Use the actions below each card to refine.
+          <p className="text-sm font-medium text-brand-800 mt-2">
+            {generationNote || "Grounded in extracted page signals and category playbooks."}
           </p>
-          <p className="text-sm text-gray-500 mb-4 mt-1">
-            Detected: {productName}
+          <p className="text-xs text-ink-500 mt-2">
+            Click any headline or body to edit inline. Use workflow actions to iterate like a creative
+            partner.
           </p>
         </div>
-        <span className="text-xs text-ink-600 font-medium px-2.5 py-1 rounded-full bg-white border border-ink-100">
-          {ads.length} variants
+        <span className="text-xs text-ink-600 font-semibold px-3 py-1.5 rounded-full bg-white border border-ink-100 shadow-sm self-start">
+          {ads.length} concepts
         </span>
       </div>
-      <div className="mb-4 flex items-center gap-2 text-xs">
-        <span className="px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
-          A/B compare: {compareIds.length}/2 selected
+
+      <div className="mb-5 flex flex-wrap items-center gap-2 text-xs">
+        <span className="px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 font-medium">
+          A/B compare: {compareIds.length}/2
         </span>
-        <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
+        <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 font-medium">
           Winners: {winnerIds.length}
         </span>
-        <button
-          type="button"
-          className="btn-ghost transition-transform duration-150 active:scale-[0.97]"
-          onClick={onSaveWinners}
-        >
-          Save Winners
+        <button type="button" className="btn-ghost transition-transform duration-150 active:scale-[0.97]" onClick={onSaveWinners}>
+          Save winners
         </button>
         <button
           type="button"
-          className="border px-4 py-2 rounded-lg text-sm font-medium bg-white hover:bg-gray-100 transition-all duration-150 active:scale-[0.97] hover:shadow-md"
+          className="inline-flex items-center rounded-xl border border-ink-200 bg-ink-900 text-white px-4 py-2 text-sm font-semibold hover:bg-ink-800 transition-all active:scale-[0.97]"
           onClick={onExportAds}
         >
-          Export Ads
+          Export campaigns (CSV)
         </button>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-7">
         {ads.map((ad, i) => (
           <AdCard
             key={ad.id}

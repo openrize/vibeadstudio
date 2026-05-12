@@ -4,6 +4,9 @@ import Header from "@/components/Header";
 import UrlInput from "@/components/UrlInput";
 import LoadingAnimation from "@/components/LoadingAnimation";
 import AdGrid from "@/components/AdGrid";
+import BrandIntelligencePanel from "@/components/BrandIntelligencePanel";
+import { buildFallbackCampaigns } from "@/lib/campaignLocal";
+import { buildBrandIntel } from "@/lib/industry";
 
 export default function HomePage() {
   const [loading, setLoading] = useState(false);
@@ -18,9 +21,12 @@ export default function HomePage() {
   const [compareIds, setCompareIds] = useState([]);
   const [winnerIds, setWinnerIds] = useState([]);
   const [topPerformers, setTopPerformers] = useState([]);
+  const [brandIntel, setBrandIntel] = useState(null);
   const productName =
-    scraped?.title?.split(/[|\-:]/)[0]?.trim() || scraped?.siteName || "Unknown product";
-  const intelligence = getIntelligenceLayer(scraped);
+    scraped?.heroHeadline?.trim() ||
+    scraped?.title?.split(/[|\-:]/)[0]?.trim() ||
+    scraped?.siteName ||
+    "Unknown product";
 
   useEffect(() => {
     try {
@@ -52,6 +58,7 @@ export default function HomePage() {
     setGenerationNote("");
     setAds([]);
     setScraped(null);
+    setBrandIntel(null);
     setLoading(true);
     try {
       let scrapedPayload = null;
@@ -66,7 +73,7 @@ export default function HomePage() {
       } else {
         scrapedPayload = buildFallbackScraped(rawUrl);
         setGenerationNote(
-          "Optimized based on website content and industry patterns."
+          "URL could not be scraped; using hostname signals only. Campaigns still follow industry playbooks."
         );
       }
 
@@ -81,30 +88,34 @@ export default function HomePage() {
       const gRes = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scraped: scrapedPayload, count: 4 }),
+        body: JSON.stringify({ scraped: scrapedPayload, count: 5 }),
       });
       const gJson = await gRes.json();
+      const intel = gRes.ok && gJson.brandIntel ? gJson.brandIntel : buildBrandIntel(scrapedPayload);
       const nextAds = gRes.ok
-        ? (gJson.ads || [])
-        : buildClientFallbackAds(scrapedPayload, 4);
+        ? gJson.ads || []
+        : buildFallbackCampaigns(scrapedPayload, 5);
 
       await new Promise((r) => setTimeout(r, 500));
 
+      setBrandIntel(intel);
       setAds(nextAds.map(withVisualFallback));
       setCompareIds([]);
       setWinnerIds([]);
       setUsedAI(!!gJson.usedAI && gRes.ok);
       setGenerationNote(
         (prev) =>
-          prev || "Optimized based on website content and industry patterns."
+          prev ||
+          "Campaigns grounded in extracted page signals, category playbooks, and five distinct strategic angles."
       );
     } catch (err) {
       const fallback = buildFallbackScraped(rawUrl);
       setScraped(fallback);
-      setAds(buildClientFallbackAds(fallback, 4).map(withVisualFallback));
+      setBrandIntel(buildBrandIntel(fallback));
+      setAds(buildFallbackCampaigns(fallback, 5).map(withVisualFallback));
       setUsedAI(false);
       setGenerationNote(
-        "Optimized based on website content and industry patterns."
+        "Campaigns grounded in extracted page signals, category playbooks, and five distinct strategic angles."
       );
       setError("");
     } finally {
@@ -134,6 +145,7 @@ export default function HomePage() {
       return [
         {
           id: ad.id,
+          campaignName: ad.campaignName,
           headline: ad.headline,
           tone: ad.tone,
           score: ad.score,
@@ -177,15 +189,44 @@ export default function HomePage() {
 
   function exportCSV() {
     if (!ads.length) return;
+    const header = [
+      "Campaign Name",
+      "Campaign Type",
+      "Goal",
+      "Audience",
+      "Headline",
+      "Body",
+      "CTA",
+      "Strategic Label",
+      "Score",
+      "Tone",
+      "Reasoning",
+      "Why This Works",
+    ];
     const rows = ads.map((ad) =>
-      [ad.headline, ad.body, ad.cta, ad.score].map(toCsvValue).join(",")
+      [
+        ad.campaignName,
+        ad.campaignTypeLabel,
+        ad.goal,
+        ad.audience,
+        ad.headline,
+        ad.body,
+        ad.cta,
+        ad.strategicLabel,
+        ad.score,
+        ad.tone,
+        ad.reasoning,
+        ad.whyThisWorks,
+      ]
+        .map(toCsvValue)
+        .join(",")
     );
-    const csvContent = ["Headline,Body,CTA,Score", ...rows].join("\n");
+    const csvContent = [header.join(","), ...rows].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "ads.csv";
+    a.download = "campaigns.csv";
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -247,11 +288,14 @@ export default function HomePage() {
           <ScrapedSummary scraped={scraped} />
         )}
 
+        {!loading && brandIntel && ads?.length > 0 && (
+          <BrandIntelligencePanel intel={brandIntel} />
+        )}
+
         {!loading && ads?.length > 0 && (
           <AdGrid
             ads={ads}
             productName={productName}
-            intelligence={intelligence}
             generationNote={generationNote}
             onChange={handleAdChange}
             onAction={handleAdAction}
@@ -305,56 +349,17 @@ function buildFallbackScraped(rawUrl) {
     siteName: name,
     title: `${name} | Smart offers for modern customers`,
     description: "Generated from URL signals to keep ad creation moving.",
+    heroHeadline: "",
+    headings: [],
     paragraphs: [],
+    benefits: [],
+    featureBullets: [],
+    testimonials: [],
+    offersOrPricing: [],
+    trustSignals: [],
+    ctaSnippets: [],
+    productNames: [],
   };
-}
-
-function buildClientFallbackAds(scraped, count = 4) {
-  const brand = scraped?.siteName || "your brand";
-  const b = formatBrandDisplay(brand);
-  const templates = [
-    {
-      headline: `${b} — offers grounded in your URL and page signals`,
-      body: "Lead with a clear promise and specifics buyers recognize, not generic filler—so the ad feels written for your site.",
-      cta: "See what’s new",
-    },
-    {
-      headline: `Explore what’s live at ${b} right now`,
-      body: "Highlight timely inventory, services, or launches visitors care about, with a CTA that matches the next step on your page.",
-      cta: "View details",
-    },
-    {
-      headline: `Turn browsers into buyers with ${b}`,
-      body: "Pair proof points from your headline and meta description with action-led copy that respects what you actually sell.",
-      cta: "Get started",
-    },
-    {
-      headline: `Campaign-ready creative for ${b}`,
-      body: "Structured like paid social: sharp hook, concrete benefit, and a button label that sounds like a real business, not a template.",
-      cta: "Shop the offer",
-    },
-  ];
-
-  return Array.from({ length: Math.max(4, count) }).map((_, i) => ({
-    id: `fallback-${Date.now()}-${i}`,
-    ...templates[i % templates.length],
-    tone: ["Bold", "Friendly", "Premium", "Urgent"][i % 4],
-    score: 88 + (i % 5),
-    image: `https://picsum.photos/seed/${encodeURIComponent(`${brand}-${i}`)}/800/520`,
-  }));
-}
-
-function formatBrandDisplay(raw) {
-  if (!raw) return "Your brand";
-  let s = String(raw).trim().replace(/^www\./, "");
-  s = s.split(".")[0] || s;
-  s = s.replace(/[-_]+/g, " ");
-  s = s.replace(/([a-z])([A-Z])/g, "$1 $2");
-  return s
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-    .join(" ");
 }
 
 function RecentUrls({ urls, onSelect }) {
@@ -389,6 +394,9 @@ function FavoritesStrip({ favorites }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {favorites.slice(0, 4).map((item) => (
           <div key={item.id} className="card p-4">
+            <div className="text-xs font-semibold text-violet-700 line-clamp-1">
+              {item.campaignName || "Campaign"}
+            </div>
             <div className="text-sm font-semibold text-ink-900 line-clamp-1">
               {item.headline}
             </div>
@@ -427,11 +435,17 @@ function TopPerformersStrip({ performers }) {
 
 function ScrapedSummary({ scraped }) {
   const detectedProduct =
-    scraped?.title?.split(/[|\-:]/)[0]?.trim() || scraped?.siteName || "Unknown";
+    scraped?.heroHeadline?.trim() ||
+    scraped?.title?.split(/[|\-:]/)[0]?.trim() ||
+    scraped?.siteName ||
+    "Unknown";
+  const nBenefits = scraped?.benefits?.length || 0;
+  const nQuotes = scraped?.testimonials?.length || 0;
+  const nTrust = scraped?.trustSignals?.length || 0;
 
   return (
-    <section className="max-w-3xl mx-auto mt-8 card p-6 flex items-center gap-4 animate-pop shadow-lg hover:shadow-xl transition rounded-2xl">
-      <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-brand-500 to-accent-500 text-white flex items-center justify-center shadow-glow">
+    <section className="max-w-3xl mx-auto mt-8 card p-6 flex flex-col sm:flex-row sm:items-start gap-4 animate-pop shadow-lg hover:shadow-xl transition rounded-2xl">
+      <div className="h-10 w-10 shrink-0 rounded-xl bg-gradient-to-br from-brand-500 to-accent-500 text-white flex items-center justify-center shadow-glow">
         <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none">
           <path
             d="M4 7h16M4 12h10M4 17h16"
@@ -443,76 +457,30 @@ function ScrapedSummary({ scraped }) {
       </div>
       <div className="flex-1 min-w-0">
         <div className="text-sm text-gray-600 mb-1">
-          Detected: <span className="font-semibold text-ink-900">{detectedProduct}</span>
+          Source signals: <span className="font-semibold text-ink-900">{detectedProduct}</span>
         </div>
         <div className="text-xs text-ink-500 truncate">{scraped.url}</div>
         <div className="font-semibold text-ink-900 truncate">{scraped.title}</div>
         {scraped.description && (
-          <div className="text-sm text-ink-600 line-clamp-2">
+          <div className="text-sm text-ink-600 line-clamp-2 mt-1">
             {scraped.description}
           </div>
         )}
+        <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-ink-600">
+          <span className="px-2 py-1 rounded-lg bg-ink-50 border border-ink-100">{nBenefits} benefit lines</span>
+          <span className="px-2 py-1 rounded-lg bg-ink-50 border border-ink-100">{nQuotes} testimonials</span>
+          <span className="px-2 py-1 rounded-lg bg-ink-50 border border-ink-100">{nTrust} trust snippets</span>
+        </div>
       </div>
     </section>
   );
 }
 
-function getIntelligenceLayer(scraped) {
-  if (!scraped) {
-    return {
-      industry: "Not detected yet",
-      audience: "Not detected yet",
-      tone: "Not detected yet",
-    };
-  }
-  const text = [scraped.url || "", scraped.title || "", scraped.description || ""].join(" ").toLowerCase();
-  if (text.includes("cadillac")) {
-    return {
-      industry: "Automotive (Luxury Vehicles)",
-      audience: "High-income buyers / local dealership customers",
-      tone: "Premium / Performance / Trust",
-    };
-  }
-  if (/(automotive|dealer|vehicle|suv|sedan|car)/.test(text)) {
-    return {
-      industry: "Automotive",
-      audience: "In-market drivers and local buyers",
-      tone: "Performance / Trust / Value",
-    };
-  }
-  if (/(real estate|property|homes|realtor|mortgage)/.test(text)) {
-    return {
-      industry: "Real Estate",
-      audience: "Home buyers and sellers",
-      tone: "Trust / Guidance / Action",
-    };
-  }
-  if (/(restaurant|food|dining|cafe|menu|delivery)/.test(text)) {
-    return {
-      industry: "Food & Hospitality",
-      audience: "Local diners and online order customers",
-      tone: "Taste / Convenience / Urgency",
-    };
-  }
-  if (/(saas|software|platform|app|cloud|automation|api)/.test(text)) {
-    return {
-      industry: "Software / SaaS",
-      audience: "Operators, teams, and decision-makers",
-      tone: "Efficiency / Credibility / Growth",
-    };
-  }
-  return {
-    industry: "General Business",
-    audience: "Prospective customers and local buyers",
-    tone: "Clarity / Trust / Action",
-  };
-}
-
 function FeatureStrip() {
   const items = [
     {
-      title: "Reads any page",
-      desc: "We extract the title, meta, and key paragraphs to ground every ad.",
+      title: "Deep page read",
+      desc: "Hero, headings, benefits, testimonials, offers, trust signals, and CTAs feed the strategist—not just paragraphs.",
       icon: (
         <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none">
           <path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
@@ -520,8 +488,8 @@ function FeatureStrip() {
       ),
     },
     {
-      title: "Multiple tones",
-      desc: "Bold, friendly, premium, urgent — every variant comes with a different angle.",
+      title: "Five campaign angles",
+      desc: "Lifestyle, proof, conversion, authority, and urgency—each with different structure, CTA, and reasoning.",
       icon: (
         <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none">
           <path d="M12 3l2.5 5 5.5.8-4 3.9.9 5.5L12 15.7 7.1 18.2 8 12.7 4 8.8 9.5 8z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
@@ -529,8 +497,8 @@ function FeatureStrip() {
       ),
     },
     {
-      title: "Edit like a doc",
-      desc: "Click any line to edit. Regenerate, shorten, or change tone in one click.",
+      title: "Creative workflow",
+      desc: "Inline edits plus regenerate, similar, tone shifts, and premium or conversion pushes—like a Vibe-style loop.",
       icon: (
         <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none">
           <path d="M4 20h4l10-10-4-4L4 16zM14 6l4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
