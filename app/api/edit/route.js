@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { editAd, hasAI } from "@/lib/ai";
+import { editAd } from "@/lib/ai";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,8 +26,8 @@ export async function POST(req) {
     if (!ALLOWED.has(action)) {
       return NextResponse.json({ error: "Unknown action." }, { status: 400 });
     }
-    const next = await editAd({ ad, action, tone, scraped });
-    return NextResponse.json({ ad: next, usedAI: hasAI() });
+    const { ad: next, usedAI } = await editAd({ ad, action, tone, scraped });
+    return NextResponse.json({ ad: next, usedAI });
   } catch (err) {
     return NextResponse.json(
       { error: err?.message || "Failed to edit campaign." },

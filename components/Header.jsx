@@ -37,8 +37,8 @@ export default function Header({ usedAI }) {
             }`}
             title={
               usedAI
-                ? "OPENAI_API_KEY detected — using GPT"
-                : "Demo mode — set OPENAI_API_KEY to use GPT"
+                ? "This response was produced with OpenAI (successful API call)"
+                : "Local/demo copy — no successful OpenAI call (missing key, error, or offline)"
             }
           >
             <span

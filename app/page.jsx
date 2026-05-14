@@ -257,6 +257,7 @@ export default function HomePage() {
           a.id === id ? withVisualFallback({ ...json.ad, id }) : a
         )
       );
+      if (typeof json.usedAI === "boolean") setUsedAI(json.usedAI);
     } catch (err) {
       setError(err.message || "Edit failed");
     } finally {
