@@ -78,6 +78,7 @@ export default function HomePage() {
       }
 
       setScraped(scrapedPayload);
+      setBrandIntel(buildBrandIntel(scrapedPayload));
       setRecentUrls((prev) => {
         const next = [rawUrl, ...prev.filter((u) => u !== rawUrl)];
         return next.slice(0, 6);
@@ -88,13 +89,13 @@ export default function HomePage() {
       const gRes = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scraped: scrapedPayload, count: 5 }),
+        body: JSON.stringify({ scraped: scrapedPayload, count: 7 }),
       });
       const gJson = await gRes.json();
       const intel = gRes.ok && gJson.brandIntel ? gJson.brandIntel : buildBrandIntel(scrapedPayload);
       const nextAds = gRes.ok
         ? gJson.ads || []
-        : buildFallbackCampaigns(scrapedPayload, 5);
+        : buildFallbackCampaigns(scrapedPayload, 7);
 
       await new Promise((r) => setTimeout(r, 500));
 
@@ -106,16 +107,16 @@ export default function HomePage() {
       setGenerationNote(
         (prev) =>
           prev ||
-          "Campaigns grounded in extracted page signals, category playbooks, and five distinct strategic angles."
+          "Seven strategic campaign types—including emotional and premium/luxury—with industry-tuned playbooks and URL-specific sequencing."
       );
     } catch (err) {
       const fallback = buildFallbackScraped(rawUrl);
       setScraped(fallback);
       setBrandIntel(buildBrandIntel(fallback));
-      setAds(buildFallbackCampaigns(fallback, 5).map(withVisualFallback));
+      setAds(buildFallbackCampaigns(fallback, 7).map(withVisualFallback));
       setUsedAI(false);
       setGenerationNote(
-        "Campaigns grounded in extracted page signals, category playbooks, and five distinct strategic angles."
+        "Seven strategic campaign types—including emotional and premium/luxury—with industry-tuned playbooks and URL-specific sequencing."
       );
       setError("");
     } finally {
@@ -192,16 +193,19 @@ export default function HomePage() {
     const header = [
       "Campaign Name",
       "Campaign Type",
-      "Goal",
-      "Audience",
+      "Campaign Goal",
+      "Target Audience",
+      "Positioning",
+      "CTA Strategy",
+      "Competitive Angle",
+      "Why This Works",
+      "Strategic Angle Note",
       "Headline",
-      "Body",
-      "CTA",
+      "Body Copy",
+      "CTA Button",
       "Strategic Label",
       "Score",
       "Tone",
-      "Reasoning",
-      "Why This Works",
     ];
     const rows = ads.map((ad) =>
       [
@@ -209,24 +213,27 @@ export default function HomePage() {
         ad.campaignTypeLabel,
         ad.goal,
         ad.audience,
+        ad.positioning,
+        ad.ctaStrategy,
+        ad.competitiveAngle,
+        ad.whyThisWorks,
+        ad.reasoning,
         ad.headline,
         ad.body,
         ad.cta,
         ad.strategicLabel,
         ad.score,
         ad.tone,
-        ad.reasoning,
-        ad.whyThisWorks,
       ]
         .map(toCsvValue)
         .join(",")
     );
-    const csvContent = [header.join(","), ...rows].join("\n");
+    const csvContent = "\uFEFF" + [header.join(","), ...rows].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "campaigns.csv";
+    a.download = "vibe-ad-studio-campaign-export.csv";
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -278,6 +285,10 @@ export default function HomePage() {
           </div>
         )}
 
+        {brandIntel && (
+          <BrandIntelligencePanel intel={brandIntel} phase={loading ? "building" : "complete"} />
+        )}
+
         {loading && <LoadingAnimation />}
 
         {!loading && recentUrls.length > 0 && (
@@ -286,10 +297,6 @@ export default function HomePage() {
 
         {!loading && scraped && (
           <ScrapedSummary scraped={scraped} />
-        )}
-
-        {!loading && brandIntel && ads?.length > 0 && (
-          <BrandIntelligencePanel intel={brandIntel} />
         )}
 
         {!loading && ads?.length > 0 && (
@@ -352,6 +359,8 @@ function buildFallbackScraped(rawUrl) {
     heroHeadline: "",
     headings: [],
     paragraphs: [],
+    heroSectionSummaries: [],
+    featureSectionSummaries: [],
     benefits: [],
     featureBullets: [],
     testimonials: [],
@@ -359,6 +368,8 @@ function buildFallbackScraped(rawUrl) {
     trustSignals: [],
     ctaSnippets: [],
     productNames: [],
+    subheadings: [],
+    serviceDescriptions: [],
   };
 }
 
@@ -439,7 +450,11 @@ function ScrapedSummary({ scraped }) {
     scraped?.title?.split(/[|\-:]/)[0]?.trim() ||
     scraped?.siteName ||
     "Unknown";
+  const nHero = scraped?.heroSectionSummaries?.length || 0;
+  const nFeatureSec = scraped?.featureSectionSummaries?.length || 0;
   const nBenefits = scraped?.benefits?.length || 0;
+  const nSub = scraped?.subheadings?.length || 0;
+  const nServices = scraped?.serviceDescriptions?.length || 0;
   const nQuotes = scraped?.testimonials?.length || 0;
   const nTrust = scraped?.trustSignals?.length || 0;
 
@@ -467,7 +482,11 @@ function ScrapedSummary({ scraped }) {
           </div>
         )}
         <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-ink-600">
+          <span className="px-2 py-1 rounded-lg bg-ink-50 border border-ink-100">{nHero} hero blocks</span>
+          <span className="px-2 py-1 rounded-lg bg-ink-50 border border-ink-100">{nFeatureSec} feature sections</span>
           <span className="px-2 py-1 rounded-lg bg-ink-50 border border-ink-100">{nBenefits} benefit lines</span>
+          <span className="px-2 py-1 rounded-lg bg-ink-50 border border-ink-100">{nSub} subheads</span>
+          <span className="px-2 py-1 rounded-lg bg-ink-50 border border-ink-100">{nServices} service blurbs</span>
           <span className="px-2 py-1 rounded-lg bg-ink-50 border border-ink-100">{nQuotes} testimonials</span>
           <span className="px-2 py-1 rounded-lg bg-ink-50 border border-ink-100">{nTrust} trust snippets</span>
         </div>
@@ -488,8 +507,8 @@ function FeatureStrip() {
       ),
     },
     {
-      title: "Five campaign angles",
-      desc: "Lifestyle, proof, conversion, authority, and urgency—each with different structure, CTA, and reasoning.",
+      title: "Strategic categories",
+      desc: "Brand awareness, conversion, retargeting, premium, emotional, seasonal—each with its own CTA posture, reasoning block, and visual mode.",
       icon: (
         <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none">
           <path d="M12 3l2.5 5 5.5.8-4 3.9.9 5.5L12 15.7 7.1 18.2 8 12.7 4 8.8 9.5 8z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
@@ -498,7 +517,7 @@ function FeatureStrip() {
     },
     {
       title: "Creative workflow",
-      desc: "Inline edits plus regenerate, similar, tone shifts, and premium or conversion pushes—like a Vibe-style loop.",
+      desc: "Inline edits plus regenerate, similar, emotional, premium, aggressive, and conversion pushes—like a Vibe-style loop.",
       icon: (
         <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none">
           <path d="M4 20h4l10-10-4-4L4 16zM14 6l4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />

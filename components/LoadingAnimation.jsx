@@ -2,10 +2,11 @@
 import { useEffect, useState } from "react";
 
 const STAGES = [
-  { label: "Analyzing brand…", detail: "Mapping hero copy, offers, proof, and trust signals from the page" },
-  { label: "Detecting audience…", detail: "Inferring who buys here and what they need to believe" },
-  { label: "Generating campaign strategies…", detail: "Building five distinct angles: lifestyle, proof, conversion, authority, urgency" },
-  { label: "Optimizing creative outputs…", detail: "Scoring CTAs, tightening structure, and aligning tone to category playbooks" },
+  { label: "Analyzing brand…", detail: "Reading hero, subheads, services, offers, testimonials, trust signals, and CTAs from the live page." },
+  { label: "Detecting audience…", detail: "Inferring who buys here, what they fear, and what they need to believe before they act." },
+  { label: "Building campaign strategies…", detail: "Composing real campaign types—awareness, conversion, luxury, emotional, retargeting, seasonal—not shallow ad variants." },
+  { label: "Optimizing creative angles…", detail: "Tuning positioning, competitive angles, and CTA strategy per industry playbooks." },
+  { label: "Generating high-conversion messaging…", detail: "Sharpening headlines and body so each concept reads presentation-ready." },
 ];
 
 export default function LoadingAnimation() {

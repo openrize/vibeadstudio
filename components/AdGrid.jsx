@@ -22,11 +22,11 @@ export default function AdGrid({
     <section className="mt-10">
       <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-6 px-1">
         <div className="max-w-3xl">
-          <h2 className="text-2xl font-bold text-ink-900 tracking-tight">Campaign concepts</h2>
+          <h2 className="text-2xl font-bold text-ink-900 tracking-tight">Strategic campaign concepts</h2>
           <p className="text-sm text-ink-600 mt-2 leading-relaxed">
-            Five strategic angles tailored to{" "}
-            <span className="font-semibold text-ink-900">{productName}</span>—each with a different
-            structure, CTA, and proof style so outputs diverge meaningfully between URLs.
+            Up to seven strategic campaign types (brand awareness, conversion, retargeting, promotional, premium /
+            luxury, emotional, seasonal)—each with different voice, CTA posture, and visual mode.
+            Order and mix shift with the URL so different businesses feel materially different.
           </p>
           <p className="text-sm font-medium text-brand-800 mt-2">
             {generationNote || "Grounded in extracted page signals and category playbooks."}
@@ -56,7 +56,7 @@ export default function AdGrid({
           className="inline-flex items-center rounded-xl border border-ink-200 bg-ink-900 text-white px-4 py-2 text-sm font-semibold hover:bg-ink-800 transition-all active:scale-[0.97]"
           onClick={onExportAds}
         >
-          Export campaigns (CSV)
+          Export presentation (CSV)
         </button>
       </div>
 

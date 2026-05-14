@@ -13,7 +13,7 @@ const ALLOWED = new Set([
   "similar",
   "more_aggressive",
   "more_premium",
-  "more_conversion",
+  "more_emotional",
 ]);
 
 export async function POST(req) {

@@ -16,7 +16,7 @@ export async function POST(req) {
         { status: 400 }
       );
     }
-    const count = clamp(parseInt(body.count, 10) || 5, 4, 5);
+    const count = clamp(parseInt(body.count, 10) || 5, 4, 7);
     const { ads, brandIntel } = await generateAds(scraped, count);
     return NextResponse.json({ ads, campaigns: ads, brandIntel, usedAI: hasAI() });
   } catch (err) {

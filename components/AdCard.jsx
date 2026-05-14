@@ -22,6 +22,82 @@ const TONE_STYLES = {
   Inspiring: "bg-brand-50 text-brand-700 border border-brand-200",
 };
 
+/** Visual differentiation: editorial = awareness, premium = luxury, conversion = performance */
+const VISUAL_SKINS = {
+  editorial: {
+    shell: "bg-[#fcfaf7] border-stone-200/95 shadow-xl",
+    leftAccent: "border-l-[3px] border-l-stone-800",
+    heroTint: "from-stone-900/65 via-stone-800/10 to-transparent",
+    heroHeight: "h-44",
+    titleClass: "font-serif tracking-tight text-stone-900",
+    meta: "text-stone-500",
+    intel: "bg-stone-50/95 border-stone-200",
+    inkLabel: "text-ink-500",
+    inkBody: "text-ink-900",
+    inkMuted: "text-ink-600",
+    why: "bg-amber-50/35 border border-stone-200/80",
+    comp: "border-l-2 border-stone-400 bg-stone-50/50",
+    cta: "rounded-xl bg-stone-900 text-white px-6 py-3.5 text-sm font-bold shadow-lg hover:bg-stone-800 transition-all",
+    actionBar: "border-t border-stone-200 bg-gradient-to-r from-stone-50 via-white to-stone-50",
+  },
+  premium: {
+    shell: "bg-white border border-amber-200/90 shadow-2xl ring-1 ring-amber-400/20",
+    leftAccent: "border-l-[3px] border-l-amber-500",
+    heroTint: "from-amber-950/55 via-zinc-900/15 to-transparent",
+    heroHeight: "h-52",
+    titleClass: "tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-amber-900 via-zinc-800 to-zinc-900 font-bold",
+    meta: "text-amber-900/70",
+    intel: "bg-amber-50/40 border-amber-100/90",
+    inkLabel: "text-ink-500",
+    inkBody: "text-ink-900",
+    inkMuted: "text-ink-600",
+    why: "bg-gradient-to-br from-amber-50 to-white border border-amber-100/80",
+    comp: "border-l-2 border-amber-400 bg-amber-50/30",
+    cta: "rounded-xl border border-amber-300/80 bg-zinc-900 text-amber-50 px-6 py-3.5 text-sm font-semibold shadow-lg hover:bg-zinc-800 transition-all",
+    actionBar: "border-t border-amber-100 bg-gradient-to-r from-amber-50/80 via-white to-amber-50/50",
+  },
+  conversion: {
+    shell: "bg-white border border-orange-100 shadow-lg",
+    leftAccent: "border-l-[4px] border-l-orange-500",
+    heroTint: "from-orange-950/55 via-rose-900/10 to-transparent",
+    heroHeight: "h-48",
+    titleClass: "font-extrabold tracking-tight text-ink-900",
+    meta: "text-orange-800/80",
+    intel: "bg-orange-50/60 border-orange-100",
+    inkLabel: "text-ink-500",
+    inkBody: "text-ink-900",
+    inkMuted: "text-ink-600",
+    why: "bg-gradient-to-br from-orange-50 to-rose-50/50 border border-orange-100/80",
+    comp: "border-l-2 border-orange-400 bg-orange-50/40",
+    cta: "rounded-xl bg-gradient-to-r from-orange-600 to-rose-600 text-white px-6 py-3.5 text-sm font-extrabold shadow-xl hover:brightness-110 transition-all",
+    actionBar: "border-t border-orange-100 bg-gradient-to-r from-orange-50/90 via-white to-rose-50/40",
+  },
+  saas: {
+    shell: "bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 border border-cyan-500/25 shadow-2xl text-slate-100",
+    leftAccent: "border-l-[3px] border-l-cyan-400",
+    heroTint: "from-slate-950/80 via-cyan-900/20 to-transparent",
+    heroHeight: "h-48",
+    titleClass: "font-semibold tracking-tight text-white",
+    meta: "text-cyan-200/90",
+    intel: "bg-slate-800/80 border-cyan-500/20",
+    inkLabel: "text-slate-400",
+    inkBody: "text-slate-50",
+    inkMuted: "text-slate-300",
+    why: "bg-slate-800/60 border border-cyan-500/25",
+    comp: "border-l-2 border-cyan-400/80 bg-slate-800/50",
+    cta: "rounded-xl bg-gradient-to-r from-cyan-500 to-sky-500 text-slate-950 px-6 py-3.5 text-sm font-bold shadow-lg hover:brightness-110 transition-all",
+    actionBar: "border-t border-cyan-500/20 bg-slate-900/90",
+  },
+};
+
+function skinFor(ad) {
+  const m = ad.visualMode;
+  if (m === "premium" || m === "conversion" || m === "editorial" || m === "saas") {
+    return VISUAL_SKINS[m];
+  }
+  return VISUAL_SKINS.editorial;
+}
+
 export default function AdCard({
   ad,
   index,
@@ -52,7 +128,7 @@ export default function AdCard({
     setFlash(true);
     const id = setTimeout(() => setFlash(false), 400);
     return () => clearTimeout(id);
-  }, [ad.headline, ad.body, ad.cta, ad.tone, ad.score, ad.image, ad.campaignName]);
+  }, [ad.headline, ad.body, ad.cta, ad.tone, ad.score, ad.image, ad.campaignName, ad.positioning, ad.competitiveAngle]);
 
   function update(field, value) {
     onChange({ ...ad, [field]: value });
@@ -64,15 +140,19 @@ export default function AdCard({
       const lines = [
         `Campaign: ${ad.campaignName || "Concept"}`,
         `Type: ${ad.campaignTypeLabel || ""}`,
-        `Goal: ${ad.goal || ""}`,
-        `Audience: ${ad.audience || ""}`,
+        `Campaign goal: ${ad.goal || ""}`,
+        `Target audience: ${ad.audience || ""}`,
+        `Positioning: ${ad.positioning || ""}`,
+        `CTA strategy: ${ad.ctaStrategy || ""}`,
+        `Competitive angle: ${ad.competitiveAngle || ""}`,
+        `Why this works: ${ad.whyThisWorks || ""}`,
+        `Strategic angle note: ${ad.reasoning || ""}`,
         `Headline: ${ad.headline}`,
         `Body: ${ad.body}`,
         `CTA: ${ad.cta}`,
         `Score: ${ad.score}/100`,
         `Strategic label: ${ad.strategicLabel || ""}`,
-        `Reasoning: ${ad.reasoning || ""}`,
-        `Why this works: ${ad.whyThisWorks || ""}`,
+        `Tone: ${ad.tone || ""}`,
       ];
       await navigator.clipboard.writeText(lines.join("\n"));
     } finally {
@@ -85,30 +165,48 @@ export default function AdCard({
   const ringColor =
     ad.score >= 95 ? "stroke-emerald-500" : ad.score >= 88 ? "stroke-brand-500" : "stroke-amber-500";
 
-  const layoutVariant = index % 2 === 0 ? "border-l-4 border-l-violet-400" : "border-l-4 border-l-teal-400";
+  const skin = skinFor(ad);
 
   return (
     <article
-      className={`relative bg-white rounded-2xl shadow-lg border border-ink-100/90 overflow-hidden flex flex-col
+      className={`relative rounded-2xl border overflow-hidden flex flex-col
         transition-all duration-300 ease-out
-        hover:shadow-2xl hover:-translate-y-0.5 hover:border-brand-200/80
+        hover:shadow-2xl hover:-translate-y-0.5
+        ${skin.shell}
         ${busy ? "opacity-85" : ""} ${isComparing ? "ring-2 ring-indigo-300" : ""} ${
         isWinner ? "ring-2 ring-emerald-300" : ""
-      } animate-ad-card ${flash ? "ring-2 ring-brand-400/50" : ""} ${layoutVariant}`}
+      } animate-ad-card ${flash ? "ring-2 ring-brand-400/50" : ""} ${skin.leftAccent}`}
       style={{ animationDelay: `${index * 70}ms` }}
     >
-      <div className="relative h-48 bg-gradient-to-br from-ink-100 to-ink-50 overflow-hidden">
+      <div className={`relative ${skin.heroHeight} bg-gradient-to-br from-ink-100 to-ink-50 overflow-hidden`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={ad.image || "https://via.placeholder.com/400x200"}
           alt=""
-          className="w-full h-full object-cover transition-transform duration-700 hover:scale-[1.04]"
+          className={`w-full h-full object-cover transition-transform duration-700 hover:scale-[1.04] ${
+            ad.visualMode === "editorial"
+              ? "grayscale-[15%]"
+              : ad.visualMode === "premium"
+                ? "saturate-110 contrast-105"
+                : ad.visualMode === "saas"
+                  ? "brightness-90 contrast-110 saturate-125"
+                  : "contrast-105"
+          }`}
           loading="lazy"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent pointer-events-none" />
+        <div className={`absolute inset-0 bg-gradient-to-t ${skin.heroTint} pointer-events-none`} />
         <div className="absolute top-3 left-3 right-3 flex flex-wrap items-start justify-between gap-2">
           <div className="flex flex-wrap gap-2">
             <span className={`tone-tag ${TONE_STYLES[ad.tone] || TONE_STYLES.Minimal}`}>{ad.tone || "Tone"}</span>
+            <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-black/55 text-white border border-white/20">
+              {ad.visualMode === "premium"
+                ? "Premium mode"
+                : ad.visualMode === "conversion"
+                  ? "Conversion mode"
+                  : ad.visualMode === "saas"
+                    ? "SaaS / product UI mode"
+                    : "Awareness / editorial"}
+            </span>
             {ad.strategicLabel && (
               <span className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-white/95 text-violet-800 border border-violet-100 shadow-sm">
                 {ad.strategicLabel}
@@ -138,26 +236,32 @@ export default function AdCard({
 
       <div className="flex-1 flex flex-col gap-3 p-6 sm:p-7">
         <div>
-          <h3 className="text-lg sm:text-xl font-bold text-ink-900 leading-snug">{ad.campaignName || "Campaign concept"}</h3>
-          {ad.marketingAngle && <p className="text-xs text-ink-500 mt-1 font-medium uppercase tracking-wide">{ad.marketingAngle}</p>}
+          <h3 className={`text-lg sm:text-xl leading-snug ${skin.titleClass}`}>{ad.campaignName || "Campaign concept"}</h3>
+          {ad.campaignTypeLabel && (
+            <p className={`text-xs mt-1 font-semibold uppercase tracking-wide ${skin.meta}`}>{ad.campaignTypeLabel}</p>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-          <div className="rounded-xl bg-ink-50/80 border border-ink-100 px-3 py-2.5">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-ink-500">Goal</div>
-            <p className="text-ink-800 mt-0.5 leading-snug">{ad.goal || "—"}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+          <div className={`rounded-xl px-3 py-2.5 border ${skin.intel}`}>
+            <div className={`text-[10px] font-semibold uppercase tracking-wider ${skin.inkLabel}`}>Campaign goal</div>
+            <p className={`${skin.inkBody} mt-0.5 leading-snug`}>{ad.goal || "—"}</p>
           </div>
-          <div className="rounded-xl bg-ink-50/80 border border-ink-100 px-3 py-2.5">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-ink-500">Audience</div>
-            <p className="text-ink-800 mt-0.5 leading-snug">{ad.audience || "—"}</p>
+          <div className={`rounded-xl px-3 py-2.5 border ${skin.intel}`}>
+            <div className={`text-[10px] font-semibold uppercase tracking-wider ${skin.inkLabel}`}>Target audience</div>
+            <p className={`${skin.inkBody} mt-0.5 leading-snug`}>{ad.audience || "—"}</p>
+          </div>
+          <div className={`sm:col-span-2 rounded-xl px-3 py-2.5 border ${skin.intel}`}>
+            <div className={`text-[10px] font-semibold uppercase tracking-wider ${skin.inkLabel}`}>Positioning</div>
+            <p className={`${skin.inkBody} mt-0.5 leading-snug`}>{ad.positioning || "—"}</p>
           </div>
         </div>
 
-        <label className="inline-flex items-center gap-2 text-[11px] text-ink-600">
+        <label className={`inline-flex items-center gap-2 text-[11px] ${skin.inkMuted}`}>
           <input type="checkbox" checked={!!isComparing} onChange={onToggleCompare} />
           Add to A/B compare
         </label>
-        <label className="inline-flex items-center gap-2 text-[11px] text-emerald-700 font-medium">
+        <label className="inline-flex items-center gap-2 text-[11px] text-emerald-600 font-medium">
           <input type="checkbox" checked={!!isWinner} onChange={onToggleWinner} />
           Mark as winner
         </label>
@@ -166,7 +270,7 @@ export default function AdCard({
           as="h4"
           value={ad.headline}
           onChange={(v) => update("headline", v)}
-          className="text-lg font-semibold leading-snug text-ink-900 editable px-1 -mx-1"
+          className={`text-lg font-semibold leading-snug editable px-1 -mx-1 ${ad.visualMode === "saas" ? "text-white" : "text-ink-900"}`}
           placeholder="Headline"
           maxLength={80}
         />
@@ -174,41 +278,54 @@ export default function AdCard({
           as="p"
           value={ad.body}
           onChange={(v) => update("body", v)}
-          className="text-sm text-ink-600 leading-relaxed editable px-1 -mx-1"
+          className={`text-sm leading-relaxed editable px-1 -mx-1 ${ad.visualMode === "saas" ? "text-slate-300" : "text-ink-600"}`}
           placeholder="Body copy…"
           maxLength={260}
           multiline
         />
 
         {ad.reasoning && (
-          <p className="text-xs text-ink-500 leading-relaxed border-l-2 border-ink-200 pl-3">
-            <span className="font-semibold text-ink-700">Strategy: </span>
+          <p className={`text-xs leading-relaxed border-l-2 pl-3 ${ad.visualMode === "saas" ? "border-cyan-500/50 text-slate-300" : "border-ink-300 text-ink-600"}`}>
+            <span className={`font-semibold ${ad.visualMode === "saas" ? "text-cyan-200" : "text-ink-800"}`}>Why this angle: </span>
             {ad.reasoning}
           </p>
         )}
 
-        {ad.whyThisWorks && (
-          <div className="rounded-xl bg-gradient-to-br from-brand-50/90 to-accent-50/50 border border-brand-100/80 px-3 py-3">
-            <div className="text-[11px] font-bold uppercase tracking-wide text-brand-800">Why this works</div>
-            <p className="text-sm text-ink-800 mt-1 leading-relaxed">{ad.whyThisWorks}</p>
+        {ad.competitiveAngle && (
+          <div className={`rounded-xl px-3 py-2.5 ${skin.comp}`}>
+            <div className={`text-[10px] font-bold uppercase tracking-wide ${skin.inkLabel}`}>Competitive angle</div>
+            <p className={`text-sm mt-1 leading-relaxed ${skin.inkBody}`}>{ad.competitiveAngle}</p>
           </div>
+        )}
+
+        {ad.whyThisWorks && (
+          <div className={`rounded-xl px-3 py-3 ${skin.why}`}>
+            <div className={`text-[11px] font-bold uppercase tracking-wide ${skin.inkLabel}`}>Why this works</div>
+            <p className={`text-sm mt-1 leading-relaxed ${skin.inkBody}`}>{ad.whyThisWorks}</p>
+          </div>
+        )}
+
+        {ad.ctaStrategy && (
+          <p className={`text-[11px] leading-snug ${skin.inkMuted}`}>
+            <span className={`font-semibold ${skin.inkBody}`}>CTA strategy: </span>
+            {ad.ctaStrategy}
+          </p>
         )}
 
         <div className="mt-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <button
             type="button"
-            className="inline-flex items-center justify-center rounded-xl px-6 py-3.5 text-sm font-bold text-white shadow-lg
-              bg-gradient-to-br from-violet-600 via-indigo-600 to-blue-600
+            className={`inline-flex items-center justify-center text-sm shadow-lg
               hover:brightness-110 hover:shadow-xl hover:scale-[1.02] active:scale-[0.97]
-              focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 transition-all"
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 transition-all ${skin.cta}`}
           >
             {ad.cta}
           </button>
-          <span className="text-[11px] text-ink-500">Editable headline & body</span>
+          <span className={`text-[11px] ${skin.inkMuted}`}>Editable headline & body</span>
         </div>
       </div>
 
-      <div className="border-t border-ink-100 bg-gradient-to-r from-white via-indigo-50/30 to-white px-4 py-4 sm:px-5 flex flex-col gap-3">
+      <div className={`px-4 py-4 sm:px-5 flex flex-col gap-3 ${skin.actionBar}`}>
         <div className="flex flex-wrap gap-2">
           <PrimaryActionButton busy={false} disabled={!!busy} onClick={handleCopy} icon={<IconCopy />} label={copying ? "Copied" : "Copy"} />
           <PrimaryActionButton
@@ -234,6 +351,13 @@ export default function AdCard({
         </div>
 
         <div className="flex flex-wrap gap-2">
+          <ActionButton
+            busy={busy === "more_emotional"}
+            disabled={!!busy}
+            onClick={() => onAction("more_emotional")}
+            icon={<IconHeart />}
+            label="More emotional"
+          />
           <ActionButton
             busy={busy === "more_premium"}
             disabled={!!busy}
@@ -419,6 +543,18 @@ function placeCaretAtEnd(el) {
   sel.addRange(range);
 }
 
+function IconHeart() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden>
+      <path
+        d="M12 21s-7-4.35-9-8.5C1.5 9.8 3.7 6 7.2 6c1.9 0 3.6 1 4.8 2.5C13.2 7 15 6 16.9 6 20.4 6 22.5 9.8 21 12.5 19 16.65 12 21 12 21z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 function IconRefresh() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden>
