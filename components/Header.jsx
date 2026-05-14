@@ -19,9 +19,7 @@ export default function Header({ usedAI }) {
           </span>
           <div className="leading-tight">
             <div className="font-semibold text-ink-900">Vibe Ad Studio</div>
-            <div className="text-[11px] text-ink-500 -mt-0.5">
-              AI ads from any URL
-            </div>
+            <div className="text-[11px] text-ink-500 -mt-0.5">AI ads from any URL</div>
           </div>
         </a>
 
@@ -29,25 +27,15 @@ export default function Header({ usedAI }) {
           <span className="hidden md:inline-flex text-xs font-medium px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
             Premium Creative Mode
           </span>
-          <span
-            className={`tone-tag ${
-              usedAI
-                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                : "bg-amber-50 text-amber-700 border border-amber-200"
-            }`}
-            title={
-              usedAI
-                ? "This response was produced with OpenAI (successful API call)"
-                : "Local/demo copy — no successful OpenAI call (missing key, error, or offline)"
-            }
-          >
+          {usedAI ? (
             <span
-              className={`h-1.5 w-1.5 rounded-full mr-1.5 ${
-                usedAI ? "bg-emerald-500" : "bg-amber-500"
-              }`}
-            />
-            {usedAI ? "AI: OpenAI" : "Demo mode"}
-          </span>
+              className="tone-tag bg-emerald-50 text-emerald-700 border border-emerald-200"
+              title="This run used your configured OpenAI model successfully."
+            >
+              <span className="h-1.5 w-1.5 rounded-full mr-1.5 bg-emerald-500" />
+              Powered by OpenAI
+            </span>
+          ) : null}
         </div>
       </div>
     </header>

@@ -5,6 +5,8 @@ import UrlInput from "@/components/UrlInput";
 import LoadingAnimation from "@/components/LoadingAnimation";
 import AdGrid from "@/components/AdGrid";
 import BrandIntelligencePanel from "@/components/BrandIntelligencePanel";
+import SiteFooter from "@/components/SiteFooter";
+import { LandingTrustSections } from "@/components/LandingSections";
 import { buildFallbackCampaigns } from "@/lib/campaignLocal";
 import { buildBrandIntel } from "@/lib/industry";
 
@@ -327,19 +329,10 @@ export default function HomePage() {
           <TopPerformersStrip performers={topPerformers} />
         )}
 
-        {!loading && ads.length === 0 && !error && !scraped && (
-          <FeatureStrip />
-        )}
+        <LandingTrustSections />
       </main>
 
-      <footer className="border-t border-ink-100/70 bg-white/60 backdrop-blur">
-        <div className="max-w-6xl mx-auto px-5 sm:px-8 h-14 flex items-center justify-between text-xs text-ink-500">
-          <div>© {new Date().getFullYear()} Vibe Ad Studio</div>
-          <div className="flex items-center gap-3">
-            <span>Built with Next.js · Tailwind · OpenAI</span>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }
@@ -496,47 +489,3 @@ function ScrapedSummary({ scraped }) {
   );
 }
 
-function FeatureStrip() {
-  const items = [
-    {
-      title: "Deep page read",
-      desc: "Hero, headings, benefits, testimonials, offers, trust signals, and CTAs feed the strategist—not just paragraphs.",
-      icon: (
-        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none">
-          <path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-        </svg>
-      ),
-    },
-    {
-      title: "Strategic categories",
-      desc: "Brand awareness, conversion, retargeting, premium, emotional, seasonal—each with its own CTA posture, reasoning block, and visual mode.",
-      icon: (
-        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none">
-          <path d="M12 3l2.5 5 5.5.8-4 3.9.9 5.5L12 15.7 7.1 18.2 8 12.7 4 8.8 9.5 8z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-        </svg>
-      ),
-    },
-    {
-      title: "Creative workflow",
-      desc: "Inline edits plus regenerate, similar, emotional, premium, aggressive, and conversion pushes—like a Vibe-style loop.",
-      icon: (
-        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none">
-          <path d="M4 20h4l10-10-4-4L4 16zM14 6l4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      ),
-    },
-  ];
-  return (
-    <section className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-5">
-      {items.map((it) => (
-        <div key={it.title} className="card p-5 hover:shadow-lg transition">
-          <div className="h-9 w-9 rounded-xl bg-ink-900 text-white flex items-center justify-center mb-3">
-            {it.icon}
-          </div>
-          <div className="font-semibold text-ink-900">{it.title}</div>
-          <div className="text-sm text-ink-600 mt-1">{it.desc}</div>
-        </div>
-      ))}
-    </section>
-  );
-}
