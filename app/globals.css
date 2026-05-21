@@ -107,7 +107,7 @@ input[type="url"]::-webkit-search-cancel-button { display: none; }
   animation: fadeInUp 0.35s ease-out;
 }
 
-@keyframes adCardAppear {
+@keyframes campaignCardAppear {
   from {
     opacity: 0;
     transform: translateY(10px);
@@ -118,15 +118,15 @@ input[type="url"]::-webkit-search-cancel-button { display: none; }
   }
 }
 
-.animate-ad-card {
-  animation: adCardAppear 0.5s cubic-bezier(0.2, 0.65, 0.2, 1) both;
+.animate-campaign-card {
+  animation: campaignCardAppear 0.5s cubic-bezier(0.2, 0.65, 0.2, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .btn,
   .card,
   .animate-fade-in,
-  .animate-ad-card,
+  .animate-campaign-card,
   .shimmer,
   .gradient-text {
     animation: none !important;

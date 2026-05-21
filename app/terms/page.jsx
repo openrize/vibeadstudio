@@ -1,29 +1,31 @@
 import LegalPageChrome from "@/components/LegalPageChrome";
 
 export const metadata = {
-  title: "Terms of Use — Vibe Ad Studio",
-  description: "Terms governing use of Vibe Ad Studio.",
+  title: "Terms of Use — Vibe Strategist",
+  description: "Terms governing use of the Vibe Strategist AI Marketing Strategist System.",
 };
 
 export default function TermsPage() {
   return (
     <LegalPageChrome title="Terms of Use">
       <p className="text-ink-600">
-        By accessing or using Vibe Ad Studio, you agree to these terms. Replace bracketed placeholders with your company
-        legal name, governing law, and support contacts.
+        By accessing or using Vibe Strategist (&quot;the service&quot;), you agree to these terms. Replace bracketed
+        placeholders with your company legal name, governing law, and support contacts before production launch.
       </p>
 
       <h2 className="text-base font-semibold text-ink-900 mt-10 mb-2">Service description</h2>
       <p>
-        Vibe Ad Studio generates marketing-oriented campaign concepts from public URL content and related signals. Output is
-        assistive and may be incomplete, inaccurate, or unsuitable for regulated industries without human review.
+        Vibe Strategist is an AI Marketing Strategist System. It analyzes publicly available website content to produce
+        brand intelligence readouts, extracted website insights, and six full-funnel campaign strategies (Awareness,
+        Conversion, Retargeting, Promotional, Emotional, and Authority). Output is assistive strategic direction and draft
+        creative copy—it may be incomplete, inaccurate, or unsuitable for regulated industries without human review.
       </p>
 
       <h2 className="text-base font-semibold text-ink-900 mt-10 mb-2">Acceptable use</h2>
       <p>You agree not to use the service to scrape or target sites you do not own or lack permission to analyze.</p>
       <p className="mt-3">
-        You agree not to use generated content to mislead consumers, impersonate individuals, violate advertising platform
-        policies, or infringe third-party intellectual property.
+        You agree not to use generated strategies or copy to mislead consumers, impersonate individuals, violate
+        advertising platform policies, or infringe third-party intellectual property.
       </p>
 
       <h2 className="text-base font-semibold text-ink-900 mt-10 mb-2">No warranties</h2>
@@ -34,7 +36,7 @@ export default function TermsPage() {
 
       <h2 className="text-base font-semibold text-ink-900 mt-10 mb-2">Limitation of liability</h2>
       <p>
-        To the fullest extent permitted by law, neither Vibe Ad Studio nor its suppliers will be liable for any indirect,
+        To the fullest extent permitted by law, neither Vibe Strategist nor its suppliers will be liable for any indirect,
         incidental, special, consequential, or punitive damages, or loss of profits or data, arising from your use of the
         service.
       </p>

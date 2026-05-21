@@ -1,8 +1,8 @@
 import LegalPageChrome from "@/components/LegalPageChrome";
 
 export const metadata = {
-  title: "Contact — Vibe Ad Studio",
-  description: "Contact the Vibe Ad Studio operator.",
+  title: "Contact — Vibe Strategist",
+  description: "Contact the Vibe Strategist operator.",
 };
 
 export default function ContactPage() {
@@ -11,8 +11,8 @@ export default function ContactPage() {
   return (
     <LegalPageChrome title="Contact">
       <p>
-        For privacy requests, security reports, billing on paid plans, or enterprise evaluation, reach the team operating
-        this deployment.
+        For privacy requests, security reports, billing on paid plans, or enterprise evaluation of the AI Marketing
+        Strategist System, reach the team operating this deployment.
       </p>
 
       {email ? (

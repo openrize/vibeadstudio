@@ -1,22 +1,24 @@
 import LegalPageChrome from "@/components/LegalPageChrome";
 
 export const metadata = {
-  title: "Privacy Policy — Vibe Ad Studio",
-  description: "How Vibe Ad Studio handles data when you generate campaigns from URLs.",
+  title: "Privacy Policy — Vibe Strategist",
+  description: "How Vibe Strategist handles data when you build marketing strategies from URLs.",
 };
 
 export default function PrivacyPage() {
   return (
     <LegalPageChrome title="Privacy Policy">
       <p className="text-ink-600">
-        This policy describes how Vibe Ad Studio (&quot;we&quot;, &quot;the service&quot;) treats information when you use
-        the product. Replace bracketed items with your legal entity and contact details before production launch.
+        This policy describes how Vibe Strategist (&quot;we&quot;, &quot;the service&quot;) treats information when you
+        use the AI Marketing Strategist System. Replace bracketed items with your legal entity and contact details before
+        production launch.
       </p>
 
       <h2 className="text-base font-semibold text-ink-900 mt-10 mb-2">What we process</h2>
       <p>
         When you submit a URL, our servers may fetch publicly available content from that address to extract text signals
-        used for analysis and campaign generation. We also process the prompts and outputs required to run the application.
+        for brand intelligence, website insights, and campaign strategy generation. We also process the prompts and outputs
+        required to run the application.
       </p>
 
       <h2 className="text-base font-semibold text-ink-900 mt-10 mb-2">What we do not do by default</h2>
@@ -35,8 +37,8 @@ export default function PrivacyPage() {
       <h2 className="text-base font-semibold text-ink-900 mt-10 mb-2">Retention</h2>
       <p>
         Retention depends on how you deploy the service. In a default stateless deployment, we do not maintain a customer
-        database of generated ads unless you add storage. Set retention and logging policies to match your compliance
-        program.
+        database of generated strategies unless you add storage. Set retention and logging policies to match your
+        compliance program.
       </p>
 
       <h2 className="text-base font-semibold text-ink-900 mt-10 mb-2">Your rights</h2>

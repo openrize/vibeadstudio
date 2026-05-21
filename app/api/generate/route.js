@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { generateAds } from "@/lib/ai";
-import { clamp } from "@/lib/utils";
+import { generateStrategy } from "@/lib/ai";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,17 +10,23 @@ export async function POST(req) {
     const body = await req.json().catch(() => ({}));
     const scraped = body.scraped;
     if (!scraped || !scraped.url) {
-      return NextResponse.json(
-        { error: "Missing scraped page data." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Missing website data." }, { status: 400 });
     }
-    const count = clamp(parseInt(body.count, 10) || 5, 4, 7);
-    const { ads, brandIntel, usedAI } = await generateAds(scraped, count);
-    return NextResponse.json({ ads, campaigns: ads, brandIntel, usedAI });
+
+    const { strategy, usedAI } = await generateStrategy(scraped);
+
+    return NextResponse.json({
+      strategy,
+      campaigns: strategy.campaigns,
+      brandIntelligence: strategy.brandIntelligence,
+      extractedContent: strategy.extractedContent,
+      brandIntel: strategy.brandIntelligence,
+      ads: strategy.campaigns,
+      usedAI,
+    });
   } catch (err) {
     return NextResponse.json(
-      { error: err?.message || "Failed to generate campaigns." },
+      { error: err?.message || "Failed to build marketing strategy." },
       { status: 500 }
     );
   }

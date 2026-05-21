@@ -1,267 +1,156 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Header from "@/components/Header";
 import UrlInput from "@/components/UrlInput";
 import LoadingAnimation from "@/components/LoadingAnimation";
-import AdGrid from "@/components/AdGrid";
 import BrandIntelligencePanel from "@/components/BrandIntelligencePanel";
+import ExtractedInsightsPanel from "@/components/ExtractedInsightsPanel";
+import CampaignGrid from "@/components/CampaignGrid";
 import SiteFooter from "@/components/SiteFooter";
 import { LandingTrustSections } from "@/components/LandingSections";
+import { buildStrategyOutput } from "@/lib/strategy";
 import { buildFallbackCampaigns } from "@/lib/campaignLocal";
-import { buildBrandIntel } from "@/lib/industry";
+import { ensureUrl } from "@/lib/utils";
+
+const FALLBACK_NOTE =
+  "We could not extract every section from the website, so we used available brand signals and strategic inference to complete the campaign system.";
+
+const SUCCESS_NOTE =
+  "Six strategically differentiated full-funnel campaigns—grounded in extracted website signals and brand intelligence.";
 
 export default function HomePage() {
   const [loading, setLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
   const [error, setError] = useState("");
+  const [strategy, setStrategy] = useState(null);
   const [scraped, setScraped] = useState(null);
-  const [ads, setAds] = useState([]);
   const [busyMap, setBusyMap] = useState({});
   const [usedAI, setUsedAI] = useState(false);
   const [generationNote, setGenerationNote] = useState("");
-  const [favorites, setFavorites] = useState([]);
-  const [recentUrls, setRecentUrls] = useState([]);
-  const [compareIds, setCompareIds] = useState([]);
-  const [winnerIds, setWinnerIds] = useState([]);
-  const [topPerformers, setTopPerformers] = useState([]);
-  const [brandIntel, setBrandIntel] = useState(null);
-  const productName =
-    scraped?.heroHeadline?.trim() ||
-    scraped?.title?.split(/[|\-:]/)[0]?.trim() ||
-    scraped?.siteName ||
-    "Unknown product";
-
-  useEffect(() => {
-    try {
-      const rawFav = localStorage.getItem("vibe-favorites");
-      const rawRecent = localStorage.getItem("vibe-recent-urls");
-      const rawTop = localStorage.getItem("vibe-top-performers");
-      if (rawFav) setFavorites(JSON.parse(rawFav));
-      if (rawRecent) setRecentUrls(JSON.parse(rawRecent));
-      if (rawTop) setTopPerformers(JSON.parse(rawTop));
-    } catch {
-      // Ignore malformed local storage data.
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem("vibe-favorites", JSON.stringify(favorites));
-  }, [favorites]);
-
-  useEffect(() => {
-    localStorage.setItem("vibe-recent-urls", JSON.stringify(recentUrls));
-  }, [recentUrls]);
-
-  useEffect(() => {
-    localStorage.setItem("vibe-top-performers", JSON.stringify(topPerformers));
-  }, [topPerformers]);
 
   async function handleGenerate(rawUrl) {
+    const validUrl = ensureUrl(rawUrl);
+    if (!validUrl) {
+      setError("Please enter a valid website URL (e.g. https://yourbrand.com).");
+      return;
+    }
+
     setError("");
     setGenerationNote("");
-    setAds([]);
+    setStrategy(null);
     setScraped(null);
-    setBrandIntel(null);
     setLoading(true);
+    setLoadingStep(0);
+
     try {
+      setLoadingStep(1);
       let scrapedPayload = null;
       const sRes = await fetch("/api/scrape", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: rawUrl }),
+        body: JSON.stringify({ url: validUrl }),
       });
       const sJson = await sRes.json();
+
       if (sRes.ok && sJson?.scraped) {
         scrapedPayload = sJson.scraped;
       } else {
-        scrapedPayload = buildFallbackScraped(rawUrl);
-        setGenerationNote(
-          "URL could not be scraped; using hostname signals only. Campaigns still follow industry playbooks."
-        );
+        scrapedPayload = buildFallbackScraped(validUrl);
+        setGenerationNote(FALLBACK_NOTE);
+        if (sJson?.error && sRes.status === 400) {
+          setError(sJson.error);
+          setLoading(false);
+          return;
+        }
       }
 
+      setLoadingStep(3);
       setScraped(scrapedPayload);
-      setBrandIntel(buildBrandIntel(scrapedPayload));
-      setRecentUrls((prev) => {
-        const next = [rawUrl, ...prev.filter((u) => u !== rawUrl)];
-        return next.slice(0, 6);
-      });
+      setStrategy(buildStrategyOutput(scrapedPayload, [], null));
 
-      await new Promise((r) => setTimeout(r, 600));
-
+      setLoadingStep(4);
       const gRes = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scraped: scrapedPayload, count: 7 }),
+        body: JSON.stringify({ scraped: scrapedPayload }),
       });
       const gJson = await gRes.json();
-      const intel = gRes.ok && gJson.brandIntel ? gJson.brandIntel : buildBrandIntel(scrapedPayload);
-      const nextAds = gRes.ok
-        ? gJson.ads || []
-        : buildFallbackCampaigns(scrapedPayload, 7);
 
-      await new Promise((r) => setTimeout(r, 500));
+      setLoadingStep(5);
 
-      setBrandIntel(intel);
-      setAds(nextAds.map(withVisualFallback));
-      setCompareIds([]);
-      setWinnerIds([]);
-      setUsedAI(!!gJson.usedAI && gRes.ok);
-      setGenerationNote(
-        (prev) =>
-          prev ||
-          "Seven strategic campaign types—including emotional and premium/luxury—with industry-tuned playbooks and URL-specific sequencing."
-      );
+      if (gRes.ok && gJson.strategy) {
+        setStrategy(gJson.strategy);
+        setUsedAI(!!gJson.usedAI);
+        setGenerationNote((prev) => prev || SUCCESS_NOTE);
+      } else {
+        const fallback = buildStrategyOutput(
+          scrapedPayload,
+          buildFallbackCampaigns(scrapedPayload),
+          null
+        );
+        setStrategy(fallback);
+        setUsedAI(false);
+        setGenerationNote((prev) => prev || FALLBACK_NOTE);
+        if (gJson?.error) {
+          setError(
+            "Strategy generation used inference mode. " +
+              (gJson.error.includes("OPENAI") ? "Add OPENAI_API_KEY for live AI strategist output." : gJson.error)
+          );
+        }
+      }
+
+      setLoadingStep(6);
     } catch (err) {
-      const fallback = buildFallbackScraped(rawUrl);
-      setScraped(fallback);
-      setBrandIntel(buildBrandIntel(fallback));
-      setAds(buildFallbackCampaigns(fallback, 7).map(withVisualFallback));
-      setUsedAI(false);
-      setGenerationNote(
-        "Seven strategic campaign types—including emotional and premium/luxury—with industry-tuned playbooks and URL-specific sequencing."
-      );
-      setError("");
+      const message =
+        err?.message === "Failed to fetch"
+          ? "We couldn't reach the server. Check your connection and try again."
+          : err?.message || "Something went wrong while building your strategy. Please try again.";
+
+      setError(message);
+
+      try {
+        const fallbackScraped = buildFallbackScraped(validUrl);
+        setScraped(fallbackScraped);
+        setStrategy(buildStrategyOutput(fallbackScraped, buildFallbackCampaigns(fallbackScraped), null));
+        setUsedAI(false);
+        setGenerationNote(FALLBACK_NOTE);
+        setLoadingStep(6);
+      } catch {
+        setStrategy(null);
+        setScraped(null);
+      }
     } finally {
       setLoading(false);
     }
   }
 
-  function handleAdChange(id, next) {
-    setAds((list) => list.map((a) => (a.id === id ? next : a)));
-  }
-
-  function withVisualFallback(ad) {
-    return {
-      ...ad,
-      image: ad.image || "https://via.placeholder.com/400x200",
-      score:
-        typeof ad.score === "number"
-          ? ad.score
-          : Math.floor(Math.random() * 16) + 80,
-    };
-  }
-
-  function toggleFavorite(ad) {
-    setFavorites((prev) => {
-      const exists = prev.some((item) => item.id === ad.id);
-      if (exists) return prev.filter((item) => item.id !== ad.id);
-      return [
-        {
-          id: ad.id,
-          campaignName: ad.campaignName,
-          headline: ad.headline,
-          tone: ad.tone,
-          score: ad.score,
-        },
-        ...prev,
-      ].slice(0, 20);
-    });
-  }
-
-  function toggleCompare(id) {
-    setCompareIds((prev) => {
-      if (prev.includes(id)) return prev.filter((v) => v !== id);
-      if (prev.length >= 2) return [prev[1], id];
-      return [...prev, id];
-    });
-  }
-
-  function toggleWinner(id) {
-    setWinnerIds((prev) =>
-      prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
+  function handleCampaignChange(id, next) {
+    setStrategy((prev) =>
+      prev
+        ? {
+            ...prev,
+            campaigns: prev.campaigns.map((c) => (c.id === id ? next : c)),
+          }
+        : prev
     );
   }
 
-  function saveWinnersToTopPerformers() {
-    const winners = ads.filter((ad) => winnerIds.includes(ad.id));
-    if (!winners.length) return;
-    setTopPerformers((prev) => {
-      const merged = [...winners, ...prev];
-      const unique = [];
-      for (const item of merged) {
-        if (!unique.some((u) => u.id === item.id)) unique.push(item);
-      }
-      return unique.slice(0, 20);
-    });
-  }
-
-  function toCsvValue(value) {
-    const safe = String(value ?? "").replace(/"/g, '""');
-    return `"${safe}"`;
-  }
-
-  function exportCSV() {
-    if (!ads.length) return;
-    const header = [
-      "Campaign Name",
-      "Campaign Type",
-      "Campaign Goal",
-      "Target Audience",
-      "Positioning",
-      "CTA Strategy",
-      "Competitive Angle",
-      "Why This Works",
-      "Strategic Angle Note",
-      "Headline",
-      "Body Copy",
-      "CTA Button",
-      "Strategic Label",
-      "Score",
-      "Tone",
-    ];
-    const rows = ads.map((ad) =>
-      [
-        ad.campaignName,
-        ad.campaignTypeLabel,
-        ad.goal,
-        ad.audience,
-        ad.positioning,
-        ad.ctaStrategy,
-        ad.competitiveAngle,
-        ad.whyThisWorks,
-        ad.reasoning,
-        ad.headline,
-        ad.body,
-        ad.cta,
-        ad.strategicLabel,
-        ad.score,
-        ad.tone,
-      ]
-        .map(toCsvValue)
-        .join(",")
-    );
-    const csvContent = "\uFEFF" + [header.join(","), ...rows].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "vibe-ad-studio-campaign-export.csv";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  }
-
-  async function handleAdAction(id, action, tone) {
-    const ad = ads.find((a) => a.id === id);
-    if (!ad) return;
+  async function handleCampaignAction(id, action) {
+    const campaign = strategy?.campaigns?.find((c) => c.id === id);
+    if (!campaign) return;
     setBusyMap((m) => ({ ...m, [id]: action }));
     try {
       const res = await fetch("/api/edit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ad, action, tone, scraped }),
+        body: JSON.stringify({ ad: campaign, action, scraped }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Failed");
-      setAds((list) =>
-        list.map((a) =>
-          a.id === id ? withVisualFallback({ ...json.ad, id }) : a
-        )
-      );
+      if (!res.ok) throw new Error(json.error || "Update failed");
+      handleCampaignChange(id, { ...json.ad, id });
       if (typeof json.usedAI === "boolean") setUsedAI(json.usedAI);
     } catch (err) {
-      setError(err.message || "Edit failed");
+      setError(err.message || "Could not refine this campaign. Please try again.");
     } finally {
       setBusyMap((m) => {
         const n = { ...m };
@@ -271,65 +160,107 @@ export default function HomePage() {
     }
   }
 
+  function exportCSV() {
+    if (!strategy?.campaigns?.length) return;
+    const header = [
+      "Campaign Type",
+      "Goal",
+      "Audience",
+      "Positioning",
+      "CTA Strategy",
+      "Competitive Angle",
+      "Why This Works",
+      "Psychology",
+      "Tone",
+      "Suggested Visual Direction",
+      "Headline",
+      "Primary Text",
+      "Short Caption",
+      "CTA Button",
+    ];
+    const rows = strategy.campaigns.map((c) =>
+      [
+        c.type,
+        c.goal,
+        c.audience,
+        c.positioning,
+        c.ctaStrategy,
+        c.competitiveAngle,
+        c.whyThisWorks,
+        c.psychology,
+        c.tone,
+        c.suggestedVisualDirection,
+        c.headline,
+        c.primaryText,
+        c.shortCaption,
+        c.ctaButton,
+      ]
+        .map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`)
+        .join(",")
+    );
+    const csv = "\uFEFF" + [header.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "ai-marketing-strategy-export.csv";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  const showResults = !loading && strategy;
+  const brandIntel = strategy?.brandIntelligence;
+  const extracted = strategy?.extractedContent;
+
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-white to-violet-50/30">
       <Header usedAI={usedAI} />
 
       <main className="flex-1 max-w-6xl w-full mx-auto px-5 sm:px-8 py-12 sm:py-16">
         <UrlInput onGenerate={handleGenerate} loading={loading} />
 
         {error && (
-          <div className="max-w-3xl mx-auto mt-6 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 px-4 py-3 text-sm flex items-start gap-2 animate-pop">
-            <svg viewBox="0 0 24 24" className="h-4 w-4 mt-0.5 shrink-0" fill="none">
-              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" />
-              <path d="M12 8v5M12 16.5v.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-            </svg>
-            <div>{error}</div>
+          <div
+            className="max-w-3xl mx-auto mt-6 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 px-4 py-3 text-sm flex items-start justify-between gap-3"
+            role="alert"
+          >
+            <span>{error}</span>
+            {strategy && (
+              <button
+                type="button"
+                className="shrink-0 text-xs font-semibold underline hover:no-underline"
+                onClick={() => setError("")}
+              >
+                Dismiss
+              </button>
+            )}
           </div>
         )}
 
-        {brandIntel && (
+        {loading && <LoadingAnimation step={loadingStep} />}
+
+        {(loading || showResults) && brandIntel && (
           <BrandIntelligencePanel intel={brandIntel} phase={loading ? "building" : "complete"} />
         )}
 
-        {loading && <LoadingAnimation />}
-
-        {!loading && recentUrls.length > 0 && (
-          <RecentUrls urls={recentUrls} onSelect={handleGenerate} />
+        {(loading || showResults) && extracted && (
+          <ExtractedInsightsPanel extracted={extracted} partialNote={loading ? null : generationNote} />
         )}
 
-        {!loading && scraped && (
-          <ScrapedSummary scraped={scraped} />
-        )}
-
-        {!loading && ads?.length > 0 && (
-          <AdGrid
-            ads={ads}
-            productName={productName}
+        {showResults && (
+          <CampaignGrid
+            campaigns={strategy.campaigns}
             generationNote={generationNote}
-            onChange={handleAdChange}
-            onAction={handleAdAction}
+            onChange={handleCampaignChange}
+            onAction={handleCampaignAction}
             busyMap={busyMap}
-            compareIds={compareIds}
-            onToggleCompare={toggleCompare}
-            winnerIds={winnerIds}
-            onToggleWinner={toggleWinner}
-            onSaveWinners={saveWinnersToTopPerformers}
-            onExportAds={exportCSV}
-            onToggleFavorite={toggleFavorite}
-            favoriteIds={favorites.map((f) => f.id)}
+            onExport={exportCSV}
           />
         )}
 
-        {!loading && favorites.length > 0 && (
-          <FavoritesStrip favorites={favorites} />
-        )}
-
-        {!loading && topPerformers.length > 0 && (
-          <TopPerformersStrip performers={topPerformers} />
-        )}
-
-        <LandingTrustSections />
+        {!loading && !strategy && <LandingTrustSections />}
       </main>
 
       <SiteFooter />
@@ -338,18 +269,19 @@ export default function HomePage() {
 }
 
 function buildFallbackScraped(rawUrl) {
+  const normalized = ensureUrl(rawUrl) || rawUrl;
   let host = "your-site.com";
   try {
-    host = new URL(/^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`).hostname;
+    host = new URL(normalized).hostname.replace(/^www\./, "");
   } catch {
-    // Keep default host if URL parsing fails.
+    /* keep default */
   }
-  const name = host.replace(/^www\./, "").split(".")[0] || "your brand";
+  const name = host.split(".")[0] || "your brand";
   return {
-    url: /^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`,
+    url: normalized,
     siteName: name,
-    title: `${name} | Smart offers for modern customers`,
-    description: "Generated from URL signals to keep ad creation moving.",
+    title: `${name} | Strategic brand presence`,
+    description: "Brand signals inferred from URL to continue strategy building.",
     heroHeadline: "",
     headings: [],
     paragraphs: [],
@@ -366,126 +298,3 @@ function buildFallbackScraped(rawUrl) {
     serviceDescriptions: [],
   };
 }
-
-function RecentUrls({ urls, onSelect }) {
-  return (
-    <section className="max-w-3xl mx-auto mt-6">
-      <div className="text-xs font-semibold uppercase tracking-wide text-ink-500 mb-2">
-        Recent generations
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {urls.map((url) => (
-          <button
-            key={url}
-            type="button"
-            className="btn-chip"
-            onClick={() => onSelect(url)}
-          >
-            {url.replace(/^https?:\/\//, "")}
-          </button>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function FavoritesStrip({ favorites }) {
-  return (
-    <section className="mt-10">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-ink-800">Saved favorites</h3>
-        <span className="text-xs text-ink-500">{favorites.length} saved</span>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {favorites.slice(0, 4).map((item) => (
-          <div key={item.id} className="card p-4">
-            <div className="text-xs font-semibold text-violet-700 line-clamp-1">
-              {item.campaignName || "Campaign"}
-            </div>
-            <div className="text-sm font-semibold text-ink-900 line-clamp-1">
-              {item.headline}
-            </div>
-            <div className="mt-1 text-xs text-ink-600">
-              {item.tone} · Score {item.score}
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function TopPerformersStrip({ performers }) {
-  return (
-    <section className="mt-10">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-ink-800">Top performers</h3>
-        <span className="text-xs text-ink-500">{performers.length} saved winners</span>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {performers.slice(0, 4).map((item) => (
-          <div key={item.id} className="card p-4">
-            <div className="text-sm font-semibold text-ink-900 line-clamp-1">
-              {item.headline}
-            </div>
-            <div className="mt-1 text-xs text-ink-600">
-              {item.tone} · Score {item.score}
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function ScrapedSummary({ scraped }) {
-  const detectedProduct =
-    scraped?.heroHeadline?.trim() ||
-    scraped?.title?.split(/[|\-:]/)[0]?.trim() ||
-    scraped?.siteName ||
-    "Unknown";
-  const nHero = scraped?.heroSectionSummaries?.length || 0;
-  const nFeatureSec = scraped?.featureSectionSummaries?.length || 0;
-  const nBenefits = scraped?.benefits?.length || 0;
-  const nSub = scraped?.subheadings?.length || 0;
-  const nServices = scraped?.serviceDescriptions?.length || 0;
-  const nQuotes = scraped?.testimonials?.length || 0;
-  const nTrust = scraped?.trustSignals?.length || 0;
-
-  return (
-    <section className="max-w-3xl mx-auto mt-8 card p-6 flex flex-col sm:flex-row sm:items-start gap-4 animate-pop shadow-lg hover:shadow-xl transition rounded-2xl">
-      <div className="h-10 w-10 shrink-0 rounded-xl bg-gradient-to-br from-brand-500 to-accent-500 text-white flex items-center justify-center shadow-glow">
-        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none">
-          <path
-            d="M4 7h16M4 12h10M4 17h16"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-          />
-        </svg>
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="text-sm text-gray-600 mb-1">
-          Source signals: <span className="font-semibold text-ink-900">{detectedProduct}</span>
-        </div>
-        <div className="text-xs text-ink-500 truncate">{scraped.url}</div>
-        <div className="font-semibold text-ink-900 truncate">{scraped.title}</div>
-        {scraped.description && (
-          <div className="text-sm text-ink-600 line-clamp-2 mt-1">
-            {scraped.description}
-          </div>
-        )}
-        <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-ink-600">
-          <span className="px-2 py-1 rounded-lg bg-ink-50 border border-ink-100">{nHero} hero blocks</span>
-          <span className="px-2 py-1 rounded-lg bg-ink-50 border border-ink-100">{nFeatureSec} feature sections</span>
-          <span className="px-2 py-1 rounded-lg bg-ink-50 border border-ink-100">{nBenefits} benefit lines</span>
-          <span className="px-2 py-1 rounded-lg bg-ink-50 border border-ink-100">{nSub} subheads</span>
-          <span className="px-2 py-1 rounded-lg bg-ink-50 border border-ink-100">{nServices} service blurbs</span>
-          <span className="px-2 py-1 rounded-lg bg-ink-50 border border-ink-100">{nQuotes} testimonials</span>
-          <span className="px-2 py-1 rounded-lg bg-ink-50 border border-ink-100">{nTrust} trust snippets</span>
-        </div>
-      </div>
-    </section>
-  );
-}
-

@@ -7,7 +7,7 @@ export default function LegalPageChrome({ title, children }) {
       <header className="border-b border-ink-100/80 bg-white/80 backdrop-blur">
         <div className="max-w-3xl mx-auto px-5 sm:px-8 h-14 flex items-center justify-between">
           <Link href="/" className="text-sm font-semibold text-ink-900 hover:text-brand-600 transition-colors">
-            ← Vibe Ad Studio
+            ← Vibe Strategist
           </Link>
         </div>
       </header>

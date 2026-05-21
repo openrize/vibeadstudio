@@ -2,34 +2,41 @@
 import { useEffect, useState } from "react";
 
 const STAGES = [
-  { label: "Analyzing brand…", detail: "Reading hero, subheads, services, offers, testimonials, trust signals, and CTAs from the live page." },
-  { label: "Detecting audience…", detail: "Inferring who buys here, what they fear, and what they need to believe before they act." },
-  { label: "Building campaign strategies…", detail: "Composing real campaign types—awareness, conversion, luxury, emotional, retargeting, seasonal—not shallow ad variants." },
-  { label: "Optimizing creative angles…", detail: "Tuning positioning, competitive angles, and CTA strategy per industry playbooks." },
-  { label: "Generating high-conversion messaging…", detail: "Sharpening headlines and body so each concept reads presentation-ready." },
+  "Analyzing brand…",
+  "Detecting audience…",
+  "Extracting trust signals…",
+  "Mapping positioning…",
+  "Building campaign strategies…",
+  "Optimizing messaging…",
+  "Finalizing creative direction…",
 ];
 
-export default function LoadingAnimation() {
-  const [tick, setTick] = useState(0);
+/** @param {{ step?: number }} props — 0–6 synced to scrape/generate pipeline */
+export default function LoadingAnimation({ step = 0 }) {
+  const [animated, setAnimated] = useState(0);
 
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 1100);
-    return () => clearInterval(id);
-  }, []);
+    setAnimated(0);
+  }, [step]);
 
-  const idx = tick % STAGES.length;
+  useEffect(() => {
+    const id = setInterval(() => setAnimated((a) => (a < step ? step : a < STAGES.length - 1 ? a + 1 : a)), 850);
+    return () => clearInterval(id);
+  }, [step]);
+
+  const active = Math.max(animated, Math.min(step, STAGES.length - 1));
+  const progress = ((active + 1) / STAGES.length) * 100;
 
   return (
     <section className="max-w-3xl mx-auto mt-10 animate-pop">
-      <div className="card p-6 sm:p-8">
-        <div className="flex items-center gap-4">
-          <div className="relative h-12 w-12 shrink-0">
-            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-brand-500 to-accent-500 opacity-90 animate-floaty" />
-            <div className="absolute inset-0 rounded-2xl ring-1 ring-white/30" />
+      <div className="rounded-2xl border border-white/60 bg-white/80 backdrop-blur-xl shadow-2xl p-6 sm:p-8">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="relative h-14 w-14 shrink-0">
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-violet-600 via-indigo-600 to-fuchsia-500 animate-pulse-soft" />
             <div className="absolute inset-0 flex items-center justify-center text-white">
-              <svg className="h-6 w-6 animate-spin-slow" viewBox="0 0 24 24" fill="none">
+              <svg className="h-7 w-7 animate-spin-slow" viewBox="0 0 24 24" fill="none">
                 <path
-                  d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"
+                  d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"
                   stroke="currentColor"
                   strokeWidth="2"
                   strokeLinecap="round"
@@ -37,49 +44,51 @@ export default function LoadingAnimation() {
               </svg>
             </div>
           </div>
-          <div className="flex-1">
-            <div className="text-sm text-ink-500">Working on it</div>
-            <div className="text-lg font-semibold text-ink-900">{STAGES[idx]?.label}</div>
-            <div className="text-sm text-ink-500">{STAGES[idx]?.detail}</div>
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wider text-violet-700">AI Marketing Strategist</div>
+            <div className="text-lg font-bold text-ink-900 mt-0.5">{STAGES[active]}</div>
+            <div className="text-sm text-ink-500">Building your full-funnel campaign system</div>
           </div>
         </div>
 
-        <div className="mt-5">
-          <div className="h-2 w-full bg-ink-100 rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-brand-500 via-accent-500 to-brand-500 bg-[length:200%_100%] animate-gradient transition-all duration-500 ease-out"
-              style={{ width: `${((idx + 1) / STAGES.length) * 100}%` }}
-            />
-          </div>
-          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-ink-500">
-            {STAGES.map((s, i) => (
-              <span key={s.label} className={i <= idx ? "text-ink-700 font-medium" : ""}>
-                {s.label.replace("…", "")}
-              </span>
-            ))}
-          </div>
+        <div className="h-2 rounded-full bg-ink-100 overflow-hidden mb-6">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-violet-600 via-indigo-500 to-fuchsia-500 transition-all duration-700 ease-out"
+            style={{ width: `${progress}%` }}
+          />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="rounded-2xl border border-ink-100 bg-white overflow-hidden">
-              <div className="h-28 bg-ink-100 relative overflow-hidden">
-                <div className="absolute inset-0 shimmer" />
-              </div>
-              <div className="p-4 space-y-2">
-                <div className="h-3 w-3/4 bg-ink-100 rounded relative overflow-hidden">
-                  <div className="absolute inset-0 shimmer" />
-                </div>
-                <div className="h-3 w-full bg-ink-100 rounded relative overflow-hidden">
-                  <div className="absolute inset-0 shimmer" />
-                </div>
-                <div className="h-3 w-5/6 bg-ink-100 rounded relative overflow-hidden">
-                  <div className="absolute inset-0 shimmer" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        <ol className="space-y-2">
+          {STAGES.map((label, i) => {
+            const done = i < active;
+            const current = i === active;
+            return (
+              <li
+                key={label}
+                className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-all ${
+                  current
+                    ? "bg-violet-50 border border-violet-100 text-violet-900 font-semibold"
+                    : done
+                      ? "text-ink-700"
+                      : "text-ink-400"
+                }`}
+              >
+                <span
+                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs ${
+                    done
+                      ? "bg-emerald-500 text-white"
+                      : current
+                        ? "bg-violet-600 text-white animate-pulse"
+                        : "bg-ink-100 text-ink-400"
+                  }`}
+                >
+                  {done ? "✓" : i + 1}
+                </span>
+                <span>{label}</span>
+              </li>
+            );
+          })}
+        </ol>
       </div>
     </section>
   );

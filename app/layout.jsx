@@ -9,9 +9,9 @@ const inter = Inter({
 });
 
 export const metadata = {
-  title: "Vibe Ad Studio — AI ads from any URL",
+  title: "Vibe Strategist — AI Marketing Strategist System",
   description:
-    "Paste a URL and generate scroll-stopping ad creatives in seconds. Edit, regenerate, and ship.",
+    "Build a full AI marketing strategy from any business website. Brand intelligence, extracted insights, and six full-funnel campaign strategies.",
   icons: {
     icon: "/favicon.svg",
   },

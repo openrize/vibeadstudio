@@ -13,7 +13,7 @@ export function HowItWorksSection() {
     {
       n: "3",
       title: "Generate and refine",
-      body: "You get multiple strategic campaign angles. Edit tone, shorten, push premium or conversion, then export when ready.",
+      body: "Receive six full-funnel campaign strategies—awareness through authority—with workflow actions to refine each card.",
     },
   ];
   return (
@@ -22,8 +22,8 @@ export function HowItWorksSection() {
         How it works
       </h2>
       <p className="text-sm text-ink-600 max-w-2xl mb-8">
-        Vibe Ad Studio turns a URL into structured campaign concepts. It is built for teams who need speed without abandoning
-        brand accuracy.
+        The AI Marketing Strategist analyzes your URL, builds brand intelligence, extracts website insights, and composes a
+        Strategic Campaign System—not generic ad copy.
       </p>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {steps.map((s) => (
@@ -45,15 +45,15 @@ export function SampleOutputSection() {
         Sample output
       </h2>
       <p className="text-sm text-ink-600 max-w-2xl mb-6">
-        Illustrative layout only—not tied to your URL. Your real cards use the same structure: headline, body, CTA, and
-        strategic reasoning blocks.
+        Illustrative layout only—not tied to your URL. Your real cards lead with strategy (goal, audience, psychology) then
+        creative output (headline, primary text, caption, CTA).
       </p>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <article className="rounded-2xl border border-stone-200 bg-[#fcfaf7] shadow-soft overflow-hidden">
           <div className="h-36 bg-gradient-to-br from-stone-800 to-stone-600 relative">
             <div className="absolute inset-0 bg-gradient-to-t from-stone-900/70 to-transparent" />
             <span className="absolute bottom-3 left-4 text-[10px] font-semibold uppercase tracking-wider text-white/90">
-              Brand awareness
+              Awareness Campaign
             </span>
           </div>
           <div className="p-5 space-y-3">
@@ -75,7 +75,7 @@ export function SampleOutputSection() {
           <div className="h-36 bg-gradient-to-br from-orange-700 to-rose-700 relative">
             <div className="absolute inset-0 bg-gradient-to-t from-orange-950/60 to-transparent" />
             <span className="absolute bottom-3 left-4 text-[10px] font-semibold uppercase tracking-wider text-white/90">
-              Conversion
+              Conversion Campaign
             </span>
           </div>
           <div className="p-5 space-y-3">

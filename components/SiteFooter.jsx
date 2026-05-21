@@ -4,7 +4,7 @@ export default function SiteFooter() {
   return (
     <footer className="border-t border-ink-100/70 bg-white/60 backdrop-blur mt-auto">
       <div className="max-w-6xl mx-auto px-5 sm:px-8 py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-ink-500">
-        <div>© {new Date().getFullYear()} Vibe Ad Studio</div>
+        <div>© {new Date().getFullYear()} Vibe Strategist</div>
         <nav className="flex flex-wrap items-center gap-x-4 gap-y-2" aria-label="Legal and contact">
           <Link href="/#how-it-works" className="hover:text-ink-800 transition-colors">
             How it works
