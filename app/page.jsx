@@ -5,12 +5,34 @@ import UrlInput from "@/components/UrlInput";
 import LoadingAnimation from "@/components/LoadingAnimation";
 import BrandIntelligencePanel from "@/components/BrandIntelligencePanel";
 import ExtractedInsightsPanel from "@/components/ExtractedInsightsPanel";
-import CampaignGrid from "@/components/CampaignGrid";
+import CampaignBuilderWorkspace from "@/components/CampaignBuilderWorkspace";
 import SiteFooter from "@/components/SiteFooter";
 import { LandingTrustSections } from "@/components/LandingSections";
 import { buildStrategyOutput } from "@/lib/strategy";
 import { buildFallbackCampaigns } from "@/lib/campaignLocal";
 import { ensureUrl } from "@/lib/utils";
+
+// Import workspace modules
+import Sidebar from "@/components/Sidebar";
+import CustomerWorkspace from "@/components/CustomerWorkspace";
+import LandingPageBuilder from "@/components/LandingPageBuilder";
+import CopySocialStudio from "@/components/CopySocialStudio";
+import PricingPlansPanel from "@/components/PricingPlansPanel";
+import BlogGenerator from "@/components/BlogGenerator";
+import AdminPortal from "@/components/AdminPortal";
+import AgencyPortal from "@/components/AgencyPortal";
+import MarketingWebsite from "@/components/MarketingWebsite";
+import SeoBibleWorkspace from "@/components/SeoBibleWorkspace";
+import AnalyticsBibleWorkspace from "@/components/AnalyticsBibleWorkspace";
+import CrmBibleWorkspace from "@/components/CrmBibleWorkspace";
+import QaBibleWorkspace from "@/components/QaBibleWorkspace";
+import DeploymentBibleWorkspace from "@/components/DeploymentBibleWorkspace";
+import JiraRoadmapWorkspace from "@/components/JiraRoadmapWorkspace";
+
+// Import SaaS simulation debuggers
+import RbacSwitcher from "@/components/RbacSwitcher";
+import ApiTerminal from "@/components/ApiTerminal";
+import BillingDashboard from "@/components/BillingDashboard";
 
 const FALLBACK_NOTE =
   "We could not extract every section from the website, so we used available brand signals and strategic inference to complete the campaign system.";
@@ -27,6 +49,24 @@ export default function HomePage() {
   const [busyMap, setBusyMap] = useState({});
   const [usedAI, setUsedAI] = useState(false);
   const [generationNote, setGenerationNote] = useState("");
+  
+  // Navigation active tab
+  const [activeTab, setActiveTab] = useState("overview");
+
+  // ---------------------------------------------------------------------------
+  // SaaS Multi-Tenant & RBAC State Simulator
+  // ---------------------------------------------------------------------------
+  const [currentOrg, setCurrentOrg] = useState({ id: "org_acme", name: "Acme Enterprise Corp", plan: "growth" });
+  const [currentRole, setCurrentRole] = useState("super_admin");
+  const [logs, setLogs] = useState([]);
+
+  function logAction(log) {
+    const nextLog = {
+      ...log,
+      timestamp: new Date().toISOString(),
+    };
+    setLogs((prev) => [...prev, nextLog]);
+  }
 
   async function handleGenerate(rawUrl) {
     const validUrl = ensureUrl(rawUrl);
@@ -42,6 +82,13 @@ export default function HomePage() {
     setLoading(true);
     setLoadingStep(0);
 
+    logAction({
+      action: "scrape_requested",
+      details: `Initiated website extraction for URL: ${validUrl}`,
+      status: "info",
+      sql: `INSERT INTO "AuditLogs" ("userId", "organizationId", "action") VALUES ('sim_user_1', '${currentOrg.id}', 'scrape_requested')`,
+    });
+
     try {
       setLoadingStep(1);
       let scrapedPayload = null;
@@ -54,9 +101,20 @@ export default function HomePage() {
 
       if (sRes.ok && sJson?.scraped) {
         scrapedPayload = sJson.scraped;
+        logAction({
+          action: "scrape_succeeded",
+          details: `DOM extraction complete for ${sJson.scraped.siteName || "target site"}. Loaded ${sJson.scraped.headings?.length || 0} headings.`,
+          status: "success",
+          sql: `SELECT * FROM "Brands" WHERE "websiteUrl" = '${validUrl}'`,
+        });
       } else {
         scrapedPayload = buildFallbackScraped(validUrl);
         setGenerationNote(FALLBACK_NOTE);
+        logAction({
+          action: "scrape_failed",
+          details: `Target block or bot protection. Falling back to category profile generators.`,
+          status: "error",
+        });
         if (sJson?.error && sRes.status === 400) {
           setError(sJson.error);
           setLoading(false);
@@ -82,6 +140,12 @@ export default function HomePage() {
         setStrategy(gJson.strategy);
         setUsedAI(!!gJson.usedAI);
         setGenerationNote((prev) => prev || SUCCESS_NOTE);
+        logAction({
+          action: "ai_generation_succeeded",
+          details: `Successfully compiled 6 full-funnel ad campaigns via OpenAI gpt-4o-mini`,
+          status: "success",
+          sql: `INSERT INTO "AIUsage" ("organizationId", "tokenCount", "generationCost") VALUES ('${currentOrg.id}', 1480, 0.00296)`,
+        });
       } else {
         const fallback = buildStrategyOutput(
           scrapedPayload,
@@ -91,6 +155,11 @@ export default function HomePage() {
         setStrategy(fallback);
         setUsedAI(false);
         setGenerationNote((prev) => prev || FALLBACK_NOTE);
+        logAction({
+          action: "ai_generation_failed",
+          details: `Strategist engine failed. Scaffolding fallback local campaigns.`,
+          status: "error",
+        });
         if (gJson?.error) {
           setError(
             "Strategy generation used inference mode. " +
@@ -100,6 +169,7 @@ export default function HomePage() {
       }
 
       setLoadingStep(6);
+      setActiveTab("overview"); // reset to dashboard overview on success
     } catch (err) {
       const message =
         err?.message === "Failed to fetch"
@@ -115,6 +185,7 @@ export default function HomePage() {
         setUsedAI(false);
         setGenerationNote(FALLBACK_NOTE);
         setLoadingStep(6);
+        setActiveTab("overview");
       } catch {
         setStrategy(null);
         setScraped(null);
@@ -139,6 +210,13 @@ export default function HomePage() {
     const campaign = strategy?.campaigns?.find((c) => c.id === id);
     if (!campaign) return;
     setBusyMap((m) => ({ ...m, [id]: action }));
+
+    logAction({
+      action: "asset_edit_requested",
+      details: `Initiated asset refinement (Action: ${action}) for campaign ID: ${id}`,
+      status: "info",
+    });
+
     try {
       const res = await fetch("/api/edit", {
         method: "POST",
@@ -149,6 +227,12 @@ export default function HomePage() {
       if (!res.ok) throw new Error(json.error || "Update failed");
       handleCampaignChange(id, { ...json.ad, id });
       if (typeof json.usedAI === "boolean") setUsedAI(json.usedAI);
+      logAction({
+        action: "asset_edit_completed",
+        details: `Asset refinement successfully updated in database.`,
+        status: "success",
+        sql: `UPDATE "ContentAssets" SET "content" = '{...}' WHERE "id" = '${id}'`,
+      });
     } catch (err) {
       setError(err.message || "Could not refine this campaign. Please try again.");
     } finally {
@@ -211,59 +295,190 @@ export default function HomePage() {
   }
 
   const showResults = !loading && strategy;
-  const brandIntel = strategy?.brandIntelligence;
-  const extracted = strategy?.extractedContent;
 
+  // View state: before scrape
+  if (!showResults && !loading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-slate-50">
+        <MarketingWebsite
+          onGenerate={handleGenerate}
+          currentRole={currentRole}
+          logAction={logAction}
+        />
+        <SiteFooter />
+      </div>
+    );
+  }
+
+  // View state: loading
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-slate-950 text-white justify-center items-center">
+        <div className="max-w-md w-full px-6 text-center space-y-6">
+          <div className="animate-spin h-10 w-10 border-4 border-violet-500 border-t-transparent rounded-full mx-auto" />
+          <LoadingAnimation step={loadingStep} />
+          {error && (
+            <div className="text-rose-400 text-xs border border-rose-950 bg-rose-950/20 p-3 rounded-xl">
+              {error}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // View state: active studio dashboard
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-white to-violet-50/30">
-      <Header usedAI={usedAI} />
+    <div className="min-h-screen flex bg-slate-50 text-slate-800">
+      {/* Navigation Sidebar */}
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} currentRole={currentRole} />
 
-      <main className="flex-1 max-w-6xl w-full mx-auto px-5 sm:px-8 py-12 sm:py-16">
-        <UrlInput onGenerate={handleGenerate} loading={loading} />
-
-        {error && (
-          <div
-            className="max-w-3xl mx-auto mt-6 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 px-4 py-3 text-sm flex items-start justify-between gap-3"
-            role="alert"
-          >
-            <span>{error}</span>
-            {strategy && (
-              <button
-                type="button"
-                className="shrink-0 text-xs font-semibold underline hover:no-underline"
-                onClick={() => setError("")}
-              >
-                Dismiss
-              </button>
-            )}
+      {/* Main Workspace Frame */}
+      <div className="flex-1 flex flex-col min-h-screen overflow-x-hidden">
+        {/* Minimal header for studio workspace */}
+        <header className="h-16 border-b border-slate-200 bg-white/70 backdrop-blur px-8 flex items-center justify-between shrink-0 sticky top-0 z-30">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-semibold px-2.5 py-1 rounded bg-slate-100 text-slate-600 border">
+              Tenant: {currentOrg.name} ({currentOrg.plan.toUpperCase()})
+            </span>
+            <span className="text-xs font-semibold px-2.5 py-1 rounded bg-violet-100 text-violet-850 border">
+              Role preview: {currentRole.replace("_", " ")}
+            </span>
           </div>
-        )}
+          <button
+            onClick={() => {
+              setStrategy(null);
+              setScraped(null);
+              setActiveTab("overview");
+            }}
+            className="text-xs font-semibold text-slate-500 hover:text-slate-900 border px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 transition"
+          >
+            Scrape Another Site
+          </button>
+        </header>
 
-        {loading && <LoadingAnimation step={loadingStep} />}
+        {/* Tab content panel */}
+        <main className="flex-1 p-8 max-w-6xl w-full mx-auto space-y-8">
+          
+          {activeTab === "overview" && (
+            <div className="space-y-8">
+              <CustomerWorkspace strategy={strategy} onNavigate={setActiveTab} currentRole={currentRole} logAction={logAction} />
+              
+              <RbacSwitcher
+                currentOrg={currentOrg}
+                setCurrentOrg={setCurrentOrg}
+                currentRole={currentRole}
+                setCurrentRole={setCurrentRole}
+                logAction={logAction}
+              />
+              
+              <ApiTerminal logs={logs} onClear={() => setLogs([])} />
+            </div>
+          )}
 
-        {(loading || showResults) && brandIntel && (
-          <BrandIntelligencePanel intel={brandIntel} phase={loading ? "building" : "complete"} />
-        )}
+          {activeTab === "brand" && (
+            <div className="space-y-8 animate-fade-in">
+              <div>
+                <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">AI Brand Intelligence Engine</h2>
+                <p className="text-sm text-slate-500 mt-1">
+                  Extracted target customer personas, competitive brand positioning, tone, and recommendations.
+                </p>
+              </div>
+              <BrandIntelligencePanel
+                intel={strategy.brandIntelligence}
+                onChange={(nextIntel) => {
+                  setStrategy((prev) => ({ ...prev, brandIntelligence: nextIntel }));
+                  logAction({
+                    action: "brand_profile_updated",
+                    details: `Guidelines modified for brandId: ${strategy.brandIntelligence.businessName || "Acme"}. Updated tagline and positioning pillars.`,
+                    status: "info",
+                    sql: `UPDATE "Brands" SET "tagline" = '${nextIntel.tagline || ""}', "audience" = '${nextIntel.audience || ""}' WHERE "id" = 'brand_1'`,
+                  });
+                }}
+              />
+              <ExtractedInsightsPanel extracted={strategy.extractedContent} partialNote={generationNote} />
+            </div>
+          )}
 
-        {(loading || showResults) && extracted && (
-          <ExtractedInsightsPanel extracted={extracted} partialNote={loading ? null : generationNote} />
-        )}
+          {activeTab === "campaigns" && (
+            <div className="animate-fade-in">
+              <CampaignBuilderWorkspace
+                strategy={strategy}
+                onNavigate={setActiveTab}
+                currentRole={currentRole}
+                logAction={logAction}
+              />
+            </div>
+          )}
 
-        {showResults && (
-          <CampaignGrid
-            campaigns={strategy.campaigns}
-            generationNote={generationNote}
-            onChange={handleCampaignChange}
-            onAction={handleCampaignAction}
-            busyMap={busyMap}
-            onExport={exportCSV}
-          />
-        )}
+          {activeTab === "blog" && (
+            <BlogGenerator strategy={strategy} currentRole={currentRole} />
+          )}
 
-        {!loading && !strategy && <LandingTrustSections />}
-      </main>
+          {activeTab === "copy" && (
+            <CopySocialStudio strategy={strategy} currentRole={currentRole} />
+          )}
 
-      <SiteFooter />
+          {activeTab === "landing" && (
+            <LandingPageBuilder strategy={strategy} currentRole={currentRole} />
+          )}
+
+          {activeTab === "seo" && (
+            <SeoBibleWorkspace currentRole={currentRole} logAction={logAction} />
+          )}
+
+          {activeTab === "analytics" && (
+            <AnalyticsBibleWorkspace currentRole={currentRole} logAction={logAction} />
+          )}
+
+          {activeTab === "crm" && (
+            <CrmBibleWorkspace currentRole={currentRole} logAction={logAction} />
+          )}
+
+          {activeTab === "qa" && (
+            <QaBibleWorkspace currentRole={currentRole} logAction={logAction} />
+          )}
+
+          {activeTab === "deployment" && (
+            <DeploymentBibleWorkspace currentRole={currentRole} logAction={logAction} />
+          )}
+
+          {activeTab === "jira" && (
+            <JiraRoadmapWorkspace currentRole={currentRole} logAction={logAction} />
+          )}
+
+          {activeTab === "pricing" && (
+            <div className="space-y-8">
+              <BillingDashboard
+                currentOrg={currentOrg}
+                currentRole={currentRole}
+                logAction={logAction}
+              />
+              <ApiTerminal logs={logs} onClear={() => setLogs([])} />
+            </div>
+          )}
+
+          {activeTab === "admin" && (
+            <div className="space-y-8">
+              <AdminPortal
+                currentRole={currentRole}
+                logAction={logAction}
+              />
+              <ApiTerminal logs={logs} onClear={() => setLogs([])} />
+            </div>
+          )}
+
+          {activeTab === "agency" && (
+            <div className="space-y-8">
+              <AgencyPortal
+                currentRole={currentRole}
+                logAction={logAction}
+              />
+              <ApiTerminal logs={logs} onClear={() => setLogs([])} />
+            </div>
+          )}
+        </main>
+      </div>
     </div>
   );
 }
