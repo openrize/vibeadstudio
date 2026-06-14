@@ -75,6 +75,7 @@ export default function MarketingWebsite({ onGenerate, currentRole, logAction })
     }
     document.addEventListener("mouseleave", handleMouseLeave);
     return () => document.removeEventListener("mouseleave", handleMouseLeave);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Calculate ROI projections

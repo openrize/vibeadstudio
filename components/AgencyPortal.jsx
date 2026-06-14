@@ -522,6 +522,7 @@ export default function AgencyPortal({ currentRole, logAction }) {
                         <td className="py-3 pr-2">
                           <div className="flex items-center gap-2">
                             {cli.logo ? (
+                              /* eslint-disable-next-line @next/next/no-img-element */
                               <img src={cli.logo} alt={cli.name} className="h-6 w-6 rounded-md object-cover border" />
                             ) : (
                               <div className="h-6 w-6 rounded-md bg-slate-100 flex items-center justify-center font-bold text-[10px] text-slate-400">CL</div>
