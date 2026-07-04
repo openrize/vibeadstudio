@@ -1,982 +1,807 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import {
+  PLATFORM_LINKS,
+  SOLUTION_LINKS,
+  PROBLEMS,
+  PLATFORM_MODULES,
+  WORKFLOW_STEPS,
+  FEATURES,
+  TEMPLATES,
+  SOLUTIONS,
+  OUTCOMES,
+  PRICING_PLANS,
+  FAQ_ITEMS,
+  TRUSTED_LOGOS,
+  DEMO_TYPING_LINES,
+} from "@/lib/marketingSiteData";
+
+function useCountUp(target, duration = 2000, start = false) {
+  const [value, setValue] = useState(0);
+  useEffect(() => {
+    if (!start) return;
+    let frame;
+    const t0 = performance.now();
+    function tick(now) {
+      const p = Math.min((now - t0) / duration, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setValue(Math.round(target * eased));
+      if (p < 1) frame = requestAnimationFrame(tick);
+    }
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [target, duration, start]);
+  return value;
+}
+
+function TypingDemo() {
+  const [lineIdx, setLineIdx] = useState(0);
+  const [charIdx, setCharIdx] = useState(0);
+  const [done, setDone] = useState([]);
+
+  useEffect(() => {
+    const line = DEMO_TYPING_LINES[lineIdx];
+    if (!line) return;
+    if (charIdx < line.length) {
+      const t = setTimeout(() => setCharIdx((c) => c + 1), 28);
+      return () => clearTimeout(t);
+    }
+    const t = setTimeout(() => {
+      setDone((d) => [...d, line]);
+      setLineIdx((i) => i + 1);
+      setCharIdx(0);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [lineIdx, charIdx]);
+
+  useEffect(() => {
+    if (lineIdx >= DEMO_TYPING_LINES.length) {
+      const t = setTimeout(() => {
+        setDone([]);
+        setLineIdx(0);
+        setCharIdx(0);
+      }, 3000);
+      return () => clearTimeout(t);
+    }
+  }, [lineIdx]);
+
+  const current = DEMO_TYPING_LINES[lineIdx] || "";
+
+  return (
+    <div className="font-mono text-[11px] space-y-1.5 min-h-[140px]">
+      {done.map((l, i) => (
+        <div key={i} className="flex items-center gap-2 text-emerald-600">
+          <span className="text-emerald-500">✓</span>
+          <span>{l}</span>
+        </div>
+      ))}
+      {lineIdx < DEMO_TYPING_LINES.length && (
+        <div className="flex items-center gap-2 text-violet-600">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse-soft" />
+          <span>
+            {current.slice(0, charIdx)}
+            <span className="typing-cursor">|</span>
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WorkflowVisual({ activeStep }) {
+  return (
+    <div className="space-y-0">
+      {WORKFLOW_STEPS.map((step, i) => {
+        const isActive = i === activeStep;
+        const isDone = i < activeStep;
+        return (
+          <div key={step.label} className="flex items-stretch gap-3">
+            <div className="flex flex-col items-center">
+              <div
+                className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold border-2 transition-all duration-500 ${
+                  isDone
+                    ? "bg-emerald-500 border-emerald-500 text-white"
+                    : isActive
+                    ? "bg-violet-600 border-violet-600 text-white shadow-glow scale-110"
+                    : "bg-white border-slate-200 text-slate-400"
+                }`}
+              >
+                {isDone ? "✓" : i + 1}
+              </div>
+              {i < WORKFLOW_STEPS.length - 1 && (
+                <div
+                  className={`w-0.5 flex-1 min-h-[20px] transition-colors duration-500 ${
+                    isDone ? "bg-emerald-400" : "bg-slate-200"
+                  }`}
+                />
+              )}
+            </div>
+            <div
+              className={`pb-4 pt-1 transition-all duration-500 ${
+                isActive ? "opacity-100 translate-x-0" : isDone ? "opacity-70" : "opacity-40"
+              }`}
+            >
+              <span className={`text-xs font-semibold ${isActive ? "text-violet-700" : "text-slate-600"}`}>
+                {step.label}
+              </span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function OutcomeStat({ label, value, suffix, desc, visible }) {
+  const count = useCountUp(value, 2200, visible);
+  return (
+    <div className="glass-panel rounded-2xl p-6 text-center space-y-2 hover:shadow-soft transition-shadow">
+      <div className="text-3xl md:text-4xl font-black text-slate-900 tabular-nums">
+        {count.toLocaleString()}
+        <span className="text-violet-600">{suffix}</span>
+      </div>
+      <div className="text-sm font-bold text-slate-800">{label}</div>
+      <p className="text-xs text-slate-500 leading-relaxed">{desc}</p>
+    </div>
+  );
+}
 
 export default function MarketingWebsite({ onGenerate, currentRole, logAction }) {
-  const [activeTab, setActiveTab] = useState("home");
-  
-  // 1. AI Demo Experience states
-  const [demoBizName, setDemoBizName] = useState("");
-  const [demoBizUrl, setDemoBizUrl] = useState("");
-  const [demoIndustry, setDemoIndustry] = useState("SaaS / Tech");
-  const [demoRunning, setDemoRunning] = useState(false);
-  const [demoOutput, setDemoOutput] = useState(null);
-
-  // 2. ROI Calculator states
-  const [roiSpend, setRoiSpend] = useState(10000);
-  const [roiVolume, setRoiVolume] = useState(15);
-  const [roiTeamSize, setRoiTeamSize] = useState(4);
-  const [roiCampaigns, setRoiCampaigns] = useState(6);
-
-  // 3. Billing Toggles
+  const [openMenu, setOpenMenu] = useState(null);
   const [billingCycle, setBillingCycle] = useState("monthly");
+  const [workflowStep, setWorkflowStep] = useState(0);
+  const [faqOpen, setFaqOpen] = useState(null);
+  const [outcomesVisible, setOutcomesVisible] = useState(false);
+  const outcomesRef = useRef(null);
 
-  // 4. Modals
-  const [signupModalOpen, setSignupModalOpen] = useState(false);
+  const [signupOpen, setSignupOpen] = useState(false);
   const [signupStep, setSignupStep] = useState(1);
   const [signupName, setSignupName] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPlan, setSignupPlan] = useState("growth");
-  const [signupOrgName, setSignupOrgName] = useState("");
+  const [signupOrg, setSignupOrg] = useState("");
+  const [signupUrl, setSignupUrl] = useState("");
 
-  const [demoModalOpen, setDemoModalOpen] = useState(false);
+  const [demoOpen, setDemoOpen] = useState(false);
+  const [demoConfirmed, setDemoConfirmed] = useState(false);
+  const [demoBusiness, setDemoBusiness] = useState("");
+  const [demoTeamSize, setDemoTeamSize] = useState("");
+  const [demoBudget, setDemoBudget] = useState("");
+  const [demoChallenge, setDemoChallenge] = useState("");
+  const [demoTools, setDemoTools] = useState("");
   const [demoDate, setDemoDate] = useState("");
   const [demoTime, setDemoTime] = useState("");
-  const [demoConfirmed, setDemoConfirmed] = useState(false);
 
-  // 5. Conversion Optimizations
-  const [exitIntentOpen, setExitIntentOpen] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false);
-  const [chatMessage, setChatMessage] = useState("");
-  const [chatLogs, setChatLogs] = useState([
-    { author: "agent", text: "Hi! I am Vibe support assistant. Looking to scale campaign velocity? Let me know if you need help starting your free trial!" }
-  ]);
-
-  // 6. Marketing Telemetry Logs
-  const [pixelLogs, setPixelLogs] = useState([]);
-
-  useEffect(() => {
-    setPixelLogs([
-      { event: "PageView", details: "Loaded anonymous SaaS acquisition homepage", timestamp: new Date().toISOString() }
-    ]);
-  }, []);
-
-  function triggerPixel(event, details) {
-    const nextLog = {
-      event,
-      details,
-      timestamp: new Date().toISOString()
-    };
-    setPixelLogs(prev => [nextLog, ...prev]);
-    
-    logAction({
-      action: `marketing_pixel_${event.toLowerCase()}`,
-      details: `Conversion Tracking Pixel triggered: ${event} (${details})`,
-      status: "info"
-    });
-  }
-
-  // Detect simulated Exit Intent on mouse movement near screen top
-  useEffect(() => {
-    function handleMouseLeave(e) {
-      if (e.clientY < 20) {
-        setExitIntentOpen(true);
-        triggerPixel("ExitIntent", "User moved cursor towards screen header");
-      }
-    }
-    document.addEventListener("mouseleave", handleMouseLeave);
-    return () => document.removeEventListener("mouseleave", handleMouseLeave);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Calculate ROI projections
-  const calculatedROI = useMemo(() => {
-    const estimatedSavings = parseFloat((roiSpend * 0.62).toFixed(0)); // 62% average agency/freelancer replacement cost
-    const timeSavedHours = (roiVolume * 8) + (roiCampaigns * 12);
-    const projectedROIPercent = Math.floor(((estimatedSavings * 3) / roiSpend) * 100);
-    return {
-      savings: estimatedSavings,
-      hours: timeSavedHours,
-      roi: projectedROIPercent
-    };
-  }, [roiSpend, roiVolume, roiCampaigns]);
-
-  // AI Demo run simulator
-  function handleRunDemo(e) {
-    e.preventDefault();
-    if (!demoBizName.trim() || !demoBizUrl.trim()) return;
-
-    setDemoRunning(true);
-    triggerPixel("DemoStarted", `Running instant demo copy for brand ${demoBizName}`);
-
-    setTimeout(() => {
-      setDemoRunning(false);
-      setDemoOutput({
-        socialPost: `💡 Discover how ${demoBizName} is reshaping the ${demoIndustry} sector. By deploying custom strategy algorithms, we help businesses market faster and smarter.\n\nRead our launch guidelines here: ${demoBizUrl}\n\n#${demoBizName.replace(/ /g, "")} #AI #Automation`,
-        adHeadline: `Scale your ${demoBizName} campaigns in minutes 🚀`,
-        adDescription: `Stop wasting hours outlining copies. Define your brand voice, connect your site, and launch campaign assets instantly.`,
-        emailSubject: `Important: Upgrade ${demoBizName} acquisition strategy today`,
-        emailBody: `Hello team,\n\nWe noticed your brand presence in ${demoIndustry}. Vibe OS enables teams to compile blogs, landing pages, and ad hooks automatically from one dashboard.\n\nClaim your free trial credits here: ${demoBizUrl}/trial`,
-        landingHeadline: `${demoBizName} | The Marketing Operating System`
+  const track = useCallback(
+    (event, details) => {
+      logAction({
+        action: event,
+        details,
+        status: "info",
       });
-      triggerPixel("DemoCompleted", `Generated custom assets for brand ${demoBizName}`);
-    }, 1500);
+    },
+    [logAction]
+  );
+
+  useEffect(() => {
+    track("page_view", "Loaded AI Marketing Studio homepage");
+  }, [track]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setWorkflowStep((s) => (s + 1) % WORKFLOW_STEPS.length);
+    }, 2200);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const el = outcomesRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) setOutcomesVisible(true);
+      },
+      { threshold: 0.3 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  function scrollTo(id) {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+    setOpenMenu(null);
   }
 
-  // Handlers - Trial Signup Flow
+  function openTrial(plan = "growth") {
+    setSignupPlan(plan);
+    setSignupStep(1);
+    setSignupOpen(true);
+    track("trial_signup", `Opened trial signup for ${plan} plan`);
+  }
+
+  function openDemo() {
+    setDemoOpen(true);
+    setDemoConfirmed(false);
+    track("demo_request", "Opened strategy call booking form");
+  }
+
   function handleSignupSubmit(e) {
     e.preventDefault();
-    if (signupStep < 3) {
-      setSignupStep(prev => prev + 1);
-      triggerPixel("SignupStepChange", `Advanced to Step ${signupStep + 1} of onboarding`);
+    if (signupStep < 2) {
+      setSignupStep((s) => s + 1);
     } else {
-      setSignupModalOpen(false);
-      triggerPixel("SignupSuccess", `Provisioned trial account for email ${signupEmail} on ${signupPlan.toUpperCase()} tier`);
-      alert(`Account successfully provisioned! Welcome to the AI Marketing Studio.`);
-      // Launch app automatically by simulating scrape on URL input
-      onGenerate(demoBizUrl || "https://acmeretail.com");
+      setSignupOpen(false);
+      track("trial_signup", `Completed trial signup: ${signupEmail} on ${signupPlan}`);
+      onGenerate(signupUrl || "https://example.com");
     }
   }
 
-  // Handlers - Demo booking
-  function handleBookDemo(e) {
+  function handleDemoSubmit(e) {
     e.preventDefault();
-    if (!demoDate || !demoTime) return;
-
     setDemoConfirmed(true);
-    triggerPixel("DemoBooked", `Scheduled support demo on ${demoDate} at ${demoTime}`);
-    alert(`Demo confirmed! We sent reminder emails to your contact inbox.`);
-  }
-
-  // Handlers - Live Chat
-  function handleSendChatMessage(e) {
-    e.preventDefault();
-    if (!chatMessage.trim()) return;
-
-    const userMsg = { author: "user", text: chatMessage };
-    setChatLogs(prev => [...prev, userMsg]);
-    setChatMessage("");
-
-    triggerPixel("ChatInteraction", `Prospect asked: "${chatMessage.slice(0, 20)}..."`);
-
-    setTimeout(() => {
-      setChatLogs(prev => [
-        ...prev,
-        { author: "agent", text: "Got it! Our trial includes 1,000 free tokens and full CRM attribution tracking. You can start in 10 seconds without any credit cards." }
-      ]);
-    }, 1000);
+    track("demo_request", `Booked strategy call for ${demoBusiness}, team ${demoTeamSize}`);
   }
 
   return (
-    <div className="space-y-8 animate-fade-in relative pb-16">
-      
-      {/* 1. MARKETING HEADER */}
-      <header className="h-16 border-b border-slate-200 bg-white/80 backdrop-blur px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm">
-        <div className="flex items-center gap-6">
-          <a href="/" className="flex items-center gap-2.5">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-glow">⚡</span>
-            <span className="font-black text-slate-900 tracking-tight text-sm">Vibe Strategist</span>
+    <div className="min-h-screen">
+      {/* ── NAV ── */}
+      <header className="sticky top-0 z-50 border-b border-white/60 bg-white/80 backdrop-blur-xl">
+        <div className="max-w-6xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between gap-4">
+          <a href="/" className="flex items-center gap-2.5 shrink-0">
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-blue-600 text-white text-sm shadow-glow">
+              ◆
+            </span>
+            <span className="font-bold text-slate-900 text-sm tracking-tight">AI Marketing Studio</span>
           </a>
 
-          {/* Sub Navigation */}
           <nav className="hidden lg:flex items-center gap-1">
-            {[
-              { id: "home", label: "Home" },
-              { id: "features", label: "Features" },
-              { id: "agency", label: "Agency Solutions" },
-              { id: "pricing", label: "Pricing & Plans" },
-              { id: "cases", label: "Case Studies" },
-              { id: "roi", label: "ROI Calculator" },
-              { id: "compare", label: "Compare" },
-            ].map((tab) => {
-              const active = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    setActiveTab(tab.id);
-                    triggerPixel("NavigationClick", `Switched marketing tab to ${tab.label}`);
-                  }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                    active 
-                      ? "bg-slate-100 text-slate-900" 
-                      : "text-slate-500 hover:text-slate-900"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
-          </nav>
-        </div>
+            <button onClick={() => scrollTo("hero")} className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition">
+              Home
+            </button>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => {
-              setDemoModalOpen(true);
-              setDemoConfirmed(false);
-              triggerPixel("DemoBookingClick", "Clicked header demo request");
-            }}
-            className="text-xs font-bold text-slate-600 hover:text-slate-900 border px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 transition"
-          >
-            Book Demo
-          </button>
-          <button
-            onClick={() => {
-              setSignupModalOpen(true);
-              setSignupStep(1);
-              triggerPixel("SignupClick", "Clicked header free trial");
-            }}
-            className="text-xs font-bold bg-violet-600 hover:bg-violet-750 text-white px-3.5 py-2 rounded-xl shadow transition"
-          >
-            Start Free Trial
-          </button>
+            <div className="relative" onMouseEnter={() => setOpenMenu("platform")} onMouseLeave={() => setOpenMenu(null)}>
+              <button className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition flex items-center gap-1">
+                Platform <span className="text-[10px]">▾</span>
+              </button>
+              {openMenu === "platform" && (
+                <div className="absolute top-full left-0 pt-2 w-72">
+                  <div className="glass-panel rounded-2xl p-3 shadow-soft grid gap-0.5">
+                    {PLATFORM_LINKS.map((l) => (
+                      <button
+                        key={l.id}
+                        onClick={() => scrollTo("platform")}
+                        className="text-left px-3 py-2.5 rounded-xl hover:bg-violet-50 transition group"
+                      >
+                        <span className="text-xs font-bold text-slate-800 group-hover:text-violet-700 block">{l.label}</span>
+                        <span className="text-[10px] text-slate-500">{l.outcome}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="relative" onMouseEnter={() => setOpenMenu("solutions")} onMouseLeave={() => setOpenMenu(null)}>
+              <button className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition flex items-center gap-1">
+                Solutions <span className="text-[10px]">▾</span>
+              </button>
+              {openMenu === "solutions" && (
+                <div className="absolute top-full left-0 pt-2 w-56">
+                  <div className="glass-panel rounded-2xl p-2 shadow-soft">
+                    {SOLUTION_LINKS.map((l) => (
+                      <button
+                        key={l.id}
+                        onClick={() => scrollTo("solutions")}
+                        className="block w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-violet-50 hover:text-violet-700 transition"
+                      >
+                        {l.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {[
+              { id: "pricing", label: "Pricing" },
+              { id: "templates", label: "Templates" },
+              { id: "outcomes", label: "Case Studies" },
+              { id: "faq", label: "Resources" },
+            ].map((l) => (
+              <button
+                key={l.id}
+                onClick={() => {
+                  scrollTo(l.id);
+                  if (l.id === "pricing") track("pricing_view", "Viewed pricing section");
+                }}
+                className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition"
+              >
+                {l.label}
+              </button>
+            ))}
+          </nav>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button onClick={openDemo} className="hidden sm:inline-flex text-xs font-semibold text-slate-600 hover:text-slate-900 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition">
+              Book Demo
+            </button>
+            <button onClick={() => openTrial()} className="btn-primary text-xs font-bold px-4 py-2">
+              Start Free Trial
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* 2. TABBED SECTIONS */}
-
-      {/* TAB A: HOME & DEMO EXPERIENCE */}
-      {activeTab === "home" && (
-        <div className="space-y-12">
-          {/* HERO */}
-          <div className="text-center max-w-3xl mx-auto space-y-4 pt-6">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold bg-violet-100 text-violet-850 rounded-full">
-              🚀 Marketing Operating System for SMBs & Agencies
-            </span>
-            <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight">
-              Scale Campaign Velocity 10x using Inferred Brand Intelligence
-            </h1>
-            <p className="text-sm md:text-base text-slate-500 max-w-xl mx-auto leading-relaxed">
-              Scrape your URL, extract buyer personas, generate SEO blogs, compile ad copies, and deploy lead-attributing funnels automatically.
-            </p>
-            <div className="flex justify-center gap-3 pt-2">
-              <button
-                onClick={() => {
-                  setSignupModalOpen(true);
-                  setSignupStep(1);
-                }}
-                className="px-6 py-3 bg-violet-600 hover:bg-violet-750 text-white rounded-xl text-xs font-bold shadow-md transition"
-              >
-                Start Free Trial
-              </button>
-              <button
-                onClick={() => setDemoModalOpen(true)}
-                className="px-6 py-3 border hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold transition"
-              >
-                Book Demo Call
-              </button>
-            </div>
-          </div>
-
-          {/* AI DEMO EXPERIENCE */}
-          <div className="card p-6 border border-slate-200 bg-white max-w-4xl mx-auto shadow-sm space-y-6">
-            <div className="border-b pb-3 text-center">
-              <h3 className="font-bold text-slate-800 text-sm">Interactive AI Demo Generator</h3>
-              <p className="text-xs text-slate-400 mt-0.5">Show values immediately: Enter brand details to generate sample copy previews instantly.</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Form Input */}
-              <form onSubmit={handleRunDemo} className="md:col-span-1 space-y-3.5">
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-slate-400">Business Name</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Acme Retail"
-                    value={demoBizName}
-                    onChange={(e) => setDemoBizName(e.target.value)}
-                    className="w-full mt-1 px-3 py-2 text-xs border rounded-xl bg-slate-50 outline-none focus:ring-1 focus:ring-violet-400 font-bold"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-slate-400">Website URL</label>
-                  <input
-                    type="url"
-                    placeholder="https://acmeretail.com"
-                    value={demoBizUrl}
-                    onChange={(e) => setDemoBizUrl(e.target.value)}
-                    className="w-full mt-1 px-3 py-2 text-xs border rounded-xl bg-slate-50 outline-none focus:ring-1 focus:ring-violet-400 font-medium"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-slate-400">Industry Segment</label>
-                  <select
-                    value={demoIndustry}
-                    onChange={(e) => setDemoIndustry(e.target.value)}
-                    className="w-full mt-1 px-3 py-2 text-xs border rounded-xl bg-slate-50 outline-none cursor-pointer"
-                  >
-                    <option value="SaaS / Tech">SaaS / Tech</option>
-                    <option value="Marketing Agency">Marketing Agency</option>
-                    <option value="Local E-commerce">Local E-commerce</option>
-                    <option value="Restaurant / Food">Restaurant / Food</option>
-                  </select>
-                </div>
-
+      <main>
+        {/* ── HERO ── */}
+        <section id="hero" className="max-w-6xl mx-auto px-5 sm:px-8 pt-16 pb-20">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div className="space-y-6">
+              <span className="inline-flex items-center gap-2 px-3 py-1 text-xs font-semibold bg-violet-100/80 text-violet-800 rounded-full border border-violet-200/60">
+                AI Marketing Platform · Marketing Operating System
+              </span>
+              <h1 className="text-4xl md:text-5xl lg:text-[3.25rem] font-black text-slate-900 tracking-tight leading-[1.08]">
+                Launch Better Marketing Campaigns in{" "}
+                <span className="gradient-text">Minutes, Not Days.</span>
+              </h1>
+              <p className="text-base md:text-lg text-slate-600 leading-relaxed max-w-lg">
+                AI Marketing Studio helps businesses plan, create, optimize, and manage marketing campaigns from one intelligent platform.
+              </p>
+              <div className="flex flex-wrap gap-3 pt-1">
+                <button onClick={() => openTrial()} className="btn-primary text-sm font-bold px-6 py-3">
+                  Start Free Trial
+                </button>
                 <button
-                  type="submit"
-                  disabled={demoRunning}
-                  className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition mt-4 disabled:opacity-40"
+                  onClick={() => {
+                    scrollTo("demo");
+                    track("campaign_preview", "Clicked Watch Demo from hero");
+                  }}
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 px-6 py-3 rounded-xl border border-slate-200 bg-white/80 hover:bg-white transition"
                 >
-                  {demoRunning ? "AI strategist generating..." : "Run AI Demo"}
+                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-violet-100 text-violet-700 text-xs">▶</span>
+                  Watch Demo
                 </button>
-              </form>
-
-              {/* Output Preview */}
-              <div className="md:col-span-2 border border-slate-150 rounded-2xl bg-slate-50 p-4 min-h-[250px] flex flex-col justify-center">
-                {demoOutput ? (
-                  <div className="space-y-4 text-xs">
-                    <div>
-                      <span className="text-[9px] bg-slate-200 px-1.5 py-0.5 rounded font-black uppercase text-slate-600 tracking-wider">Sample Social Post (LinkedIn)</span>
-                      <p className="mt-1.5 p-2 bg-white border rounded-lg italic text-slate-700 leading-relaxed">&quot;{demoOutput.socialPost}&quot;</p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <span className="text-[9px] bg-slate-200 px-1.5 py-0.5 rounded font-black uppercase text-slate-600 tracking-wider">Sample Ad copy (Meta Ads)</span>
-                        <div className="mt-1.5 p-2 bg-white border rounded-lg space-y-1">
-                          <span className="font-bold text-slate-900 block">{demoOutput.adHeadline}</span>
-                          <span className="text-slate-500 block text-[10px]">{demoOutput.adDescription}</span>
-                          <span className="text-indigo-650 font-bold block text-[10px]">{demoOutput.adHeadline.includes("Awareness") ? "Learn More" : "Get Started"}</span>
-                        </div>
-                      </div>
-                      <div>
-                        <span className="text-[9px] bg-slate-200 px-1.5 py-0.5 rounded font-black uppercase text-slate-600 tracking-wider">Sample Email copy (Promo)</span>
-                        <div className="mt-1.5 p-2 bg-white border rounded-lg space-y-1">
-                          <span className="font-bold text-slate-900 block">Subject: {demoOutput.emailSubject}</span>
-                          <p className="text-[10px] text-slate-600 line-clamp-3 leading-relaxed whitespace-pre-wrap">{demoOutput.emailBody}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center text-slate-400 space-y-2 py-8">
-                    <span className="text-3xl">✨</span>
-                    <p className="font-bold">Immediate product demonstration</p>
-                    <p className="text-[10px] max-w-xs mx-auto">Fill out the brand URL and click Run AI Demo to render sample email, ad, and social content copies automatically.</p>
-                  </div>
-                )}
               </div>
+              <p className="text-xs text-slate-400 font-medium">
+                Your AI Marketing Team — create, launch, and scale campaigns without juggling five tools.
+              </p>
+            </div>
+
+            {/* Hero dashboard visual */}
+            <div className="glass-panel rounded-2xl p-5 shadow-soft border border-white/80">
+              <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-1">
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-400" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-2">Campaign OS</span>
+                </div>
+                <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Live</span>
+              </div>
+              <div className="grid grid-cols-3 gap-3 mb-5">
+                {[
+                  { label: "Campaigns", val: "6", color: "text-violet-600" },
+                  { label: "Content", val: "24", color: "text-blue-600" },
+                  { label: "Scheduled", val: "18", color: "text-emerald-600" },
+                ].map((m) => (
+                  <div key={m.label} className="bg-slate-50/80 rounded-xl p-3 text-center border border-slate-100">
+                    <div className={`text-xl font-black ${m.color}`}>{m.val}</div>
+                    <div className="text-[10px] text-slate-500 font-semibold mt-0.5">{m.label}</div>
+                  </div>
+                ))}
+              </div>
+              <WorkflowVisual activeStep={workflowStep} />
             </div>
           </div>
-        </div>
-      )}
+        </section>
 
-      {/* TAB B: DETAILED FEATURES */}
-      {activeTab === "features" && (
-        <div className="space-y-8 max-w-4xl mx-auto">
-          <div className="text-center space-y-1.5">
-            <h2 className="text-2xl font-black text-slate-900">Dedicated Product Features</h2>
-            <p className="text-xs text-slate-500">Every feature is designed to reduce campaign setup time and boost leads output.</p>
+        {/* ── TRUSTED BY ── */}
+        <section className="border-y border-slate-100/80 bg-white/50 backdrop-blur-sm py-8">
+          <div className="max-w-6xl mx-auto px-5 sm:px-8 text-center">
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-5">Trusted by Modern Marketing Teams</p>
+            <div className="flex flex-wrap justify-center items-center gap-x-10 gap-y-4">
+              {TRUSTED_LOGOS.map((name) => (
+                <span key={name} className="text-sm font-bold text-slate-300 hover:text-slate-500 transition-colors">
+                  {name}
+                </span>
+              ))}
+            </div>
           </div>
+        </section>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
-            {[
-              { title: "AI Content Generator", desc: "Write publish-ready SEO blogs, social post series, and custom emails grounding on brand voice definitions.", icon: "✍️" },
-              { title: "Campaign Builder", desc: "Deploy step-by-step multi-channel campaigns linking custom CNAMEs, leads form capture, and analytics.", icon: "🚀" },
-              { title: "Landing Page Builder", desc: "Scaffold dark-themed cyberpunk or corporate clean pages featuring responsive forms and dynamic assets.", icon: "📄" },
-              { title: "AI Brand Assistant", desc: "Streamline brand intelligence extraction and guideline compliance auditing throughout the workspace.", icon: "🤖" },
-              { title: "Agency Portal Solutions", desc: "Centralized client portfolios switches, reseller billing models, and white-label custom domain settings.", icon: "💼" },
-              { title: "Attribution Analytics", desc: "Measure impressions, click CTR, Cost Per Lead (CPL), estimated ROI, and UTM attribution parameters.", icon: "📊" },
-            ].map((f, i) => (
-              <div key={i} className="card p-5 border border-slate-200 bg-white space-y-2.5">
-                <span className="text-2xl">{f.icon}</span>
-                <h4 className="font-extrabold text-slate-950 text-sm">{f.title}</h4>
-                <p className="text-slate-500 leading-relaxed font-semibold">{f.desc}</p>
-                <button 
-                  onClick={() => {
-                    setSignupModalOpen(true);
-                    triggerPixel("FeatureDetailsClick", `Clicked details for feature: ${f.title}`);
-                  }}
-                  className="text-violet-650 hover:underline font-bold block pt-1.5"
-                >
-                  Try this feature free →
-                </button>
+        {/* ── PROBLEMS ── */}
+        <section id="problems" className="max-w-6xl mx-auto px-5 sm:px-8 py-20">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
+              Marketing Shouldn&apos;t Feel Like Five Full-Time Jobs.
+            </h2>
+            <p className="text-slate-500 mt-3 text-sm leading-relaxed">
+              This could replace hours of marketing work every week — not just write blog posts.
+            </p>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {PROBLEMS.map((p) => (
+              <div key={p.title} className="card p-6 hover:shadow-soft hover:-translate-y-0.5 transition-all group">
+                <span className="text-2xl">{p.icon}</span>
+                <h3 className="font-bold text-slate-900 mt-3 text-sm">{p.title}</h3>
+                <p className="text-xs text-slate-500 mt-2 leading-relaxed">{p.desc}</p>
               </div>
             ))}
           </div>
-        </div>
-      )}
+        </section>
 
-      {/* TAB C: AGENCY SOLUTIONS */}
-      {activeTab === "agency" && (
-        <div className="space-y-6 max-w-3xl mx-auto text-xs">
-          <div className="card p-6 border border-slate-200 bg-white space-y-6">
-            <div className="border-b pb-3 text-center">
-              <span className="text-[9px] bg-indigo-100 text-indigo-800 font-bold px-2 py-0.5 rounded uppercase">Resellers & Agencies</span>
-              <h3 className="font-bold text-slate-900 text-base mt-1.5">Deliver marketing platforms under your own brand identity</h3>
+        {/* ── PLATFORM OVERVIEW ── */}
+        <section id="platform" className="py-20 bg-gradient-to-b from-violet-50/40 to-transparent">
+          <div className="max-w-6xl mx-auto px-5 sm:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-14">
+              <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">One Platform. Every Channel.</h2>
+              <p className="text-slate-500 mt-3 text-sm">Your marketing operating system — one dashboard orchestrates everything.</p>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 leading-relaxed">
-              <div className="space-y-3">
-                <h4 className="font-extrabold text-slate-900 text-sm">Centralize Agency Client Portfolios</h4>
-                <p className="text-slate-500 font-medium">
-                  Switch context instantly between client workspaces. Add custom brand guidelines, connect tenant CNAME domains, and coordinate team editors in one ecosystem.
-                </p>
-                
-                <h4 className="font-extrabold text-slate-900 text-sm">Flexible Reseller Models</h4>
-                <p className="text-slate-500 font-medium">
-                  Configure custom billing markup profit margins (e.g. 20% overlay margin) on base platform fees. Disptach white-labeled invoices to clients automatically.
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                <h4 className="font-extrabold text-slate-900 text-sm">White-Label Branding Services</h4>
-                <p className="text-slate-500 font-medium">
-                  Set custom domain DNS records, upload agency logo headers, customize app primary colors, and configure tailored client invitations notification email templates.
-                </p>
-
-                <div className="p-3 bg-slate-50 border rounded-xl font-mono text-[10px] space-y-1">
-                  <div><strong>CNAME Record:</strong> marketing.agency.com</div>
-                  <div><strong>Target Host:</strong> whitelabel.vibeadstudio.com</div>
-                  <div><strong>Status:</strong> DNS Active Verified</div>
+            <div className="relative max-w-lg mx-auto">
+              <div className="glass-panel rounded-2xl p-8 text-center shadow-soft border-2 border-violet-200/50 relative z-10">
+                <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-violet-600 to-blue-600 flex items-center justify-center text-white text-2xl shadow-glow mb-4">
+                  ◆
                 </div>
+                <h3 className="font-black text-slate-900 text-lg">Central Dashboard</h3>
+                <p className="text-xs text-slate-500 mt-1">Plan · Create · Launch · Measure</p>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
+                {PLATFORM_MODULES.map((m, i) => (
+                  <div
+                    key={m.label}
+                    className="card p-4 text-center hover:shadow-soft transition-all workflow-module"
+                    style={{ animationDelay: `${i * 80}ms` }}
+                  >
+                    <span className="text-xl">{m.icon}</span>
+                    <div className="text-[11px] font-bold text-slate-700 mt-2">{m.label}</div>
+                  </div>
+                ))}
               </div>
             </div>
+          </div>
+        </section>
 
-            <div className="text-center pt-3 border-t">
+        {/* ── AI WORKFLOW DEMO ── */}
+        <section id="demo" className="max-w-6xl mx-auto px-5 sm:px-8 py-20">
+          <div className="grid lg:grid-cols-2 gap-10 items-center">
+            <div>
+              <span className="text-xs font-bold uppercase tracking-wider text-violet-600">Live Workflow</span>
+              <h2 className="text-3xl font-black text-slate-900 tracking-tight mt-2 mb-3">Watch a Campaign Build Itself</h2>
+              <p className="text-sm text-slate-500 leading-relaxed">
+                From strategy to published assets — see how AI Marketing Studio orchestrates your entire campaign workflow in real time.
+              </p>
+            </div>
+            <div className="glass-panel rounded-2xl p-6 shadow-soft border border-slate-100">
+              <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse-soft" />
+                <span className="text-xs font-bold text-slate-600">AI Campaign Builder — Running</span>
+              </div>
+              <TypingDemo />
               <button
                 onClick={() => {
-                  setSignupModalOpen(true);
-                  setSignupPlan("agency");
+                  track("campaign_preview", "Clicked preview campaign from demo section");
+                  openTrial();
                 }}
-                className="px-6 py-2.5 bg-indigo-650 hover:bg-indigo-750 text-white rounded-xl font-bold shadow-md transition"
+                className="mt-4 w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition"
               >
-                Launch White-Label Agency Studio
+                Preview Your Campaign →
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </section>
 
-      {/* TAB D: PRICING PAGES */}
-      {activeTab === "pricing" && (
-        <div className="space-y-8 max-w-4xl mx-auto">
-          <div className="text-center space-y-3">
-            <h2 className="text-2xl font-black text-slate-900">Simple, Transparent Pricing</h2>
-            <div className="inline-flex items-center gap-2 bg-slate-100 p-1 rounded-xl">
-              <button
-                onClick={() => setBillingCycle("monthly")}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
-                  billingCycle === "monthly" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-900"
-                }`}
-              >
-                Monthly billing
-              </button>
-              <button
-                onClick={() => setBillingCycle("annual")}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
-                  billingCycle === "annual" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-900"
-                }`}
-              >
-                Annual billing (Save 20%)
-              </button>
+        {/* ── FEATURES ── */}
+        <section id="features" className="py-20 bg-white/60">
+          <div className="max-w-6xl mx-auto px-5 sm:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-12">
+              <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">Everything Your Marketing Team Needs</h2>
+              <p className="text-slate-500 mt-3 text-sm">Each feature creates a real business outcome — not just another tool in the stack.</p>
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
-            {[
-              { id: "starter", name: "Starter Tier", price: billingCycle === "monthly" ? "$29" : "$23", period: "/mo", limit: "100 credits/mo", desc: "Best for single creators launching ad copies." },
-              { id: "growth", name: "Growth Tier", price: billingCycle === "monthly" ? "$79" : "$63", period: "/mo", limit: "500 credits/mo", desc: "Best for SMBs deploying custom brand guidelines.", active: true },
-              { id: "agency", name: "Agency Tier", price: billingCycle === "monthly" ? "$249" : "$199", period: "/mo", limit: "2,000 credits/mo", desc: "Best for agencies managing multiple client sub-accounts." },
-              { id: "enterprise", name: "Enterprise Custom", price: "Custom", period: "", limit: "Unlimited tokens", desc: "Best for dedicated teams needing API access." },
-            ].map((plan) => (
-              <div
-                key={plan.id}
-                className={`p-5 rounded-2xl border flex flex-col justify-between relative ${
-                  plan.active
-                    ? "border-violet-600 bg-violet-50/20 shadow-md"
-                    : "border-slate-200 bg-white"
-                }`}
-              >
-                {plan.active && (
-                  <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-violet-600 text-white font-extrabold uppercase text-[8px] px-2 py-0.5 rounded-full">Most Popular</span>
-                )}
-                <div>
-                  <span className="font-extrabold text-slate-800 text-sm block">{plan.name}</span>
-                  <div className="mt-2 flex items-baseline">
-                    <span className="text-2xl font-black text-slate-950">{plan.price}</span>
-                    <span className="text-slate-500 font-bold ml-1">{plan.period}</span>
-                  </div>
-                  <p className="text-[10px] text-slate-450 mt-1 font-bold">Quota: {plan.limit}</p>
-                  <p className="text-slate-500 leading-relaxed font-semibold mt-3">{plan.desc}</p>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {FEATURES.map((f) => (
+                <div key={f.title} className="card p-6 hover:shadow-soft hover:border-violet-200/60 transition-all group">
+                  <span className="text-2xl">{f.icon}</span>
+                  <h3 className="font-bold text-slate-900 mt-3 text-sm group-hover:text-violet-700 transition-colors">{f.title}</h3>
+                  <p className="text-xs text-slate-500 mt-2 leading-relaxed">{f.outcome}</p>
                 </div>
+              ))}
+            </div>
+          </div>
+        </section>
 
+        {/* ── TEMPLATES ── */}
+        <section id="templates" className="max-w-6xl mx-auto px-5 sm:px-8 py-20">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">Start With Proven Templates</h2>
+            <p className="text-slate-500 mt-3 text-sm">Real campaign templates — launch faster with structures that already work.</p>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {TEMPLATES.map((t) => (
+              <button
+                key={t.name}
+                onClick={() => {
+                  track("template_view", `Viewed template: ${t.name}`);
+                  openTrial();
+                }}
+                className="group text-left rounded-2xl overflow-hidden border border-slate-200 bg-white hover:shadow-soft hover:-translate-y-0.5 transition-all"
+              >
+                <div className={`h-24 bg-gradient-to-br ${t.color} relative`}>
+                  <span className="absolute bottom-2 left-3 text-[10px] font-bold uppercase tracking-wider text-white/90">{t.category}</span>
+                </div>
+                <div className="p-4">
+                  <h3 className="text-sm font-bold text-slate-900 group-hover:text-violet-700 transition-colors">{t.name}</h3>
+                  <span className="text-[10px] text-violet-600 font-semibold mt-1 inline-block">Use template →</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* ── SOLUTIONS ── */}
+        <section id="solutions" className="py-20 bg-gradient-to-b from-blue-50/30 to-transparent">
+          <div className="max-w-6xl mx-auto px-5 sm:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-12">
+              <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">Built for How You Work</h2>
+              <p className="text-slate-500 mt-3 text-sm">Every business has different marketing challenges. We solve yours.</p>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {SOLUTIONS.map((s) => (
+                <div key={s.id} className="card p-6 flex flex-col hover:shadow-soft transition-all">
+                  <h3 className="font-black text-slate-900 text-base">{s.title}</h3>
+                  <div className="mt-4 space-y-3 flex-1">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-rose-500 tracking-wider">Problem</span>
+                      <p className="text-xs text-slate-600 mt-1 leading-relaxed">{s.problem}</p>
+                    </div>
+                    <div className="text-center text-slate-300 text-lg">↓</div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-emerald-600 tracking-wider">Solution</span>
+                      <p className="text-xs text-slate-600 mt-1 leading-relaxed">{s.solution}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (s.cta.includes("Demo") || s.cta.includes("Call")) openDemo();
+                      else if (s.cta.includes("Template")) scrollTo("templates");
+                      else openTrial();
+                    }}
+                    className="mt-5 w-full py-2.5 text-xs font-bold rounded-xl border border-violet-200 text-violet-700 hover:bg-violet-50 transition"
+                  >
+                    {s.cta}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── OUTCOMES ── */}
+        <section id="outcomes" ref={outcomesRef} className="max-w-6xl mx-auto px-5 sm:px-8 py-20">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">Expected Business Outcomes</h2>
+            <p className="text-slate-500 mt-3 text-sm">Real metrics from teams using AI Marketing Studio. Replace with case studies as customers grow.</p>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {OUTCOMES.map((o) => (
+              <OutcomeStat key={o.label} {...o} visible={outcomesVisible} />
+            ))}
+          </div>
+        </section>
+
+        {/* ── PRICING ── */}
+        <section id="pricing" className="py-20 bg-white/60">
+          <div className="max-w-6xl mx-auto px-5 sm:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-8">
+              <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">Simple, Transparent Pricing</h2>
+              <p className="text-slate-500 mt-3 text-sm">Start free. Scale as your marketing grows.</p>
+            </div>
+            <div className="flex justify-center mb-10">
+              <div className="inline-flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
                 <button
-                  onClick={() => {
-                    setSignupPlan(plan.id);
-                    setSignupModalOpen(true);
-                    setSignupStep(1);
-                    triggerPixel("PricingPlanSelect", `Selected plan: ${plan.name}`);
-                  }}
-                  className={`w-full py-2.5 rounded-xl text-[10px] font-black uppercase text-center transition mt-6 ${
-                    plan.active
-                      ? "bg-violet-600 hover:bg-violet-750 text-white"
-                      : "bg-slate-900 hover:bg-slate-800 text-white"
-                  }`}
+                  onClick={() => setBillingCycle("monthly")}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition ${billingCycle === "monthly" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}
+                >
+                  Monthly
+                </button>
+                <button
+                  onClick={() => setBillingCycle("annual")}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition ${billingCycle === "annual" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}
+                >
+                  Annual <span className="text-emerald-600">-20%</span>
+                </button>
+              </div>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {PRICING_PLANS.map((plan) => {
+                const price = plan.price[billingCycle];
+                return (
+                  <div
+                    key={plan.id}
+                    className={`rounded-2xl p-6 flex flex-col border transition-all hover:shadow-soft ${
+                      plan.popular ? "border-violet-400 bg-violet-50/30 shadow-soft relative" : "border-slate-200 bg-white"
+                    }`}
+                  >
+                    {plan.popular && (
+                      <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-violet-600 text-white text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full">
+                        Most Popular
+                      </span>
+                    )}
+                    <h3 className="font-black text-slate-900">{plan.name}</h3>
+                    <div className="mt-3 flex items-baseline gap-1">
+                      {price ? (
+                        <>
+                          <span className="text-3xl font-black text-slate-900">${price}</span>
+                          <span className="text-slate-500 text-xs font-semibold">/mo</span>
+                        </>
+                      ) : (
+                        <span className="text-2xl font-black text-slate-900">Custom</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-500 mt-2 leading-relaxed">{plan.desc}</p>
+                    <ul className="mt-4 space-y-2 flex-1">
+                      {plan.features.map((f) => (
+                        <li key={f} className="text-xs text-slate-600 flex items-start gap-2">
+                          <span className="text-emerald-500 shrink-0 mt-0.5">✓</span>
+                          {f}
+                        </li>
+                      ))}
+                    </ul>
+                    <button
+                      onClick={() => {
+                        track("pricing_view", `Selected ${plan.name} plan`);
+                        if (plan.id === "enterprise") openDemo();
+                        else openTrial(plan.id);
+                      }}
+                      className={`mt-6 w-full py-2.5 rounded-xl text-xs font-bold transition ${
+                        plan.popular ? "btn-primary" : "bg-slate-900 hover:bg-slate-800 text-white"
+                      }`}
+                    >
+                      {plan.id === "enterprise" ? "Contact Sales" : "Start Free Trial"}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* ── FAQ ── */}
+        <section id="faq" className="max-w-3xl mx-auto px-5 sm:px-8 py-20">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Frequently Asked Questions</h2>
+          </div>
+          <div className="space-y-2">
+            {FAQ_ITEMS.map((item, i) => (
+              <div key={i} className="card border border-slate-200 overflow-hidden">
+                <button
+                  onClick={() => setFaqOpen(faqOpen === i ? null : i)}
+                  className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-50/50 transition"
+                >
+                  <span className="text-sm font-bold text-slate-800 pr-4">{item.q}</span>
+                  <span className={`text-slate-400 shrink-0 transition-transform ${faqOpen === i ? "rotate-45" : ""}`}>+</span>
+                </button>
+                {faqOpen === i && (
+                  <div className="px-5 pb-4 text-xs text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
+                    {item.a}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── FINAL CTA ── */}
+        <section className="max-w-6xl mx-auto px-5 sm:px-8 pb-20">
+          <div className="rounded-3xl bg-gradient-to-br from-violet-600 via-indigo-600 to-blue-700 p-10 md:p-14 text-center text-white shadow-glow relative overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.12),transparent_50%)]" />
+            <div className="relative z-10 space-y-5">
+              <h2 className="text-3xl md:text-4xl font-black tracking-tight">
+                Replace Hours of Marketing Work Every Week
+              </h2>
+              <p className="text-violet-100 text-sm max-w-lg mx-auto leading-relaxed">
+                Join teams using AI Marketing Studio as their marketing operating system. Start your free trial or book a strategy call.
+              </p>
+              <div className="flex flex-wrap justify-center gap-3 pt-2">
+                <button
+                  onClick={() => openTrial()}
+                  className="px-6 py-3 bg-white text-violet-700 rounded-xl text-sm font-bold hover:bg-violet-50 transition shadow-soft"
                 >
                   Start Free Trial
                 </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* TAB E: CASE STUDIES */}
-      {activeTab === "cases" && (
-        <div className="space-y-8 max-w-4xl mx-auto text-xs">
-          <div className="text-center space-y-1.5">
-            <h2 className="text-2xl font-black text-slate-900">Client Case Success Stories</h2>
-            <p className="text-xs text-slate-500">Measurable marketing ROI generated across different industries.</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {[
-              { title: "Local Boutique E-commerce", challenge: "High freelancer fees for monthly social copies and email promos.", solution: "Integrated Brand Voice rules to scaffold summer campaigns instantly.", result: "Saved $2,400/mo and increased publication output by 300%.", quote: "Vibe OS replaced our content bottleneck within one day." },
-              { title: "Growth Marketing Agency Hub", challenge: "Slowing client onboarding speeds and attribution tracking setup delays.", solution: "Deployed White-label reseller CNAME portals and approval queues.", result: "Reduced client onboarding speed to 4 hours and managed 12 active tenants.", quote: "The resale markup pricing handles our client invoice profit margins automatically." },
-            ].map((c, i) => (
-              <div key={i} className="card p-5 border border-slate-200 bg-white space-y-3">
-                <h4 className="font-extrabold text-slate-900 text-sm border-b pb-1.5">{c.title}</h4>
-                <div className="space-y-1 font-semibold">
-                  <p><strong className="text-slate-700">Challenge:</strong> <span className="text-slate-500">{c.challenge}</span></p>
-                  <p><strong className="text-slate-700">Solution:</strong> <span className="text-slate-500">{c.solution}</span></p>
-                  <p><strong className="text-emerald-700">Results:</strong> <span className="text-emerald-800 font-bold">{c.result}</span></p>
-                </div>
-                <p className="italic text-slate-500 pt-2 leading-relaxed bg-slate-50 border border-slate-100 p-2.5 rounded-xl">
-                  &quot;{c.quote}&quot;
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* TAB F: ROI CALCULATOR */}
-      {activeTab === "roi" && (
-        <div className="space-y-6 max-w-3xl mx-auto text-xs">
-          <div className="card p-6 border border-slate-200 bg-white space-y-6">
-            <div className="border-b pb-3 text-center">
-              <span className="text-[9px] bg-violet-100 text-violet-850 font-bold px-2 py-0.5 rounded uppercase">Cost & Time savings</span>
-              <h3 className="font-bold text-slate-900 text-base mt-1.5">Calculate your AI ROI Projection</h3>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Sliders Input */}
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <div className="flex justify-between font-bold text-slate-700">
-                    <span>Monthly Marketing Spend</span>
-                    <span>${roiSpend.toLocaleString()}</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="1000"
-                    max="50000"
-                    step="1000"
-                    value={roiSpend}
-                    onChange={(e) => {
-                      setRoiSpend(parseInt(e.target.value));
-                      triggerPixel("ROICalculatorSpendChange", `Spend adjusted to $${e.target.value}`);
-                    }}
-                    className="w-full accent-violet-600 cursor-pointer"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <div className="flex justify-between font-bold text-slate-700">
-                    <span>Monthly Content Article Volume</span>
-                    <span>{roiVolume} articles</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="1"
-                    max="50"
-                    value={roiVolume}
-                    onChange={(e) => setRoiVolume(parseInt(e.target.value))}
-                    className="w-full accent-violet-600 cursor-pointer"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <div className="flex justify-between font-bold text-slate-700">
-                    <span>Marketing Team Size</span>
-                    <span>{roiTeamSize} members</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="1"
-                    max="20"
-                    value={roiTeamSize}
-                    onChange={(e) => setRoiTeamSize(parseInt(e.target.value))}
-                    className="w-full accent-violet-600 cursor-pointer"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <div className="flex justify-between font-bold text-slate-700">
-                    <span>Campaign Launches / Month</span>
-                    <span>{roiCampaigns} campaigns</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="1"
-                    max="20"
-                    value={roiCampaigns}
-                    onChange={(e) => setRoiCampaigns(parseInt(e.target.value))}
-                    className="w-full accent-violet-600 cursor-pointer"
-                  />
-                </div>
-              </div>
-
-              {/* Projections Output */}
-              <div className="border border-slate-150 rounded-2xl bg-slate-50 p-5 flex flex-col justify-between space-y-4">
-                <div className="text-center">
-                  <span className="text-[10px] font-bold text-slate-450 uppercase block">Estimated Monthly Savings</span>
-                  <div className="text-3xl font-black text-slate-900 mt-1">${calculatedROI.savings.toLocaleString()}</div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 border-t pt-3">
-                  <div className="text-center border-r">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase block">Time Saved / Mo</span>
-                    <span className="font-extrabold text-slate-800 text-sm mt-0.5 block">{calculatedROI.hours} Hours</span>
-                  </div>
-                  <div className="text-center">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase block">ROI Projection</span>
-                    <span className="font-extrabold text-slate-800 text-sm mt-0.5 block">{calculatedROI.roi}% ROI</span>
-                  </div>
-                </div>
-
-                <div className="text-[10px] text-slate-400 text-center leading-relaxed">
-                  Based on simulated averages of team salary reduction and content velocity benchmarks.
-                </div>
+                <button
+                  onClick={openDemo}
+                  className="px-6 py-3 border border-white/30 text-white rounded-xl text-sm font-bold hover:bg-white/10 transition"
+                >
+                  Book Strategy Call
+                </button>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        </section>
+      </main>
 
-      {/* TAB G: COMPARISONS */}
-      {activeTab === "compare" && (
-        <div className="space-y-6 max-w-3xl mx-auto text-xs">
-          <div className="card p-5 border border-slate-200 bg-white space-y-4">
-            <h3 className="font-bold text-slate-800 text-sm border-b pb-2">Competitive Comparison Matrix</h3>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full text-[11px] text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-slate-150 text-[9px] text-slate-450 font-black uppercase">
-                    <th className="pb-2">Feature / Matrix</th>
-                    <th className="pb-2 text-violet-700 font-extrabold">Vibe Studio</th>
-                    <th className="pb-2">Jasper.ai</th>
-                    <th className="pb-2">Copy.ai</th>
-                    <th className="pb-2">HubSpot</th>
-                  </tr>
-                </thead>
-                <tbody className="font-medium text-slate-750">
-                  {[
-                    { f: "Brand Voice compliance", vibe: "Yes (Scraped URL)", jasper: "Yes (Upload files)", copy: "Yes (Text profiles)", hs: "Partial" },
-                    { f: "Attribution lead CRM log", vibe: "Yes (Connected)", jasper: "No", copy: "No", hs: "Yes (Premium)" },
-                    { f: "White-label custom CNAME", vibe: "Yes (Reseller)", jasper: "No", copy: "No", hs: "No" },
-                    { f: "Campaign creation step wizard", vibe: "Yes (Wizard)", jasper: "Template only", copy: "Chat only", hs: "No" },
-                    { f: "Starting cost per seat", vibe: "$29 / month", jasper: "$49 / month", copy: "$49 / month", hs: "$800 / month" },
-                  ].map((row, i) => (
-                    <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/50">
-                      <td className="py-2.5 font-bold text-slate-850">{row.f}</td>
-                      <td className="py-2.5 text-violet-700 font-black">{row.vibe}</td>
-                      <td className="py-2.5 text-slate-500">{row.jasper}</td>
-                      <td className="py-2.5 text-slate-500">{row.copy}</td>
-                      <td className="py-2.5 text-slate-500">{row.hs}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+      {/* ── SIGNUP MODAL ── */}
+      {signupOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 animate-pop relative">
+            <button onClick={() => setSignupOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 font-bold">✕</button>
+            <div>
+              <h3 className="font-black text-slate-900">Start Your Free Trial</h3>
+              <p className="text-xs text-slate-500 mt-1">Step {signupStep} of 2 — No credit card required</p>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* 3. FREE TRIAL SIGNUP FLOW MODAL */}
-      {signupModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 animate-scale-in relative text-xs">
-            <button
-              onClick={() => {
-                setSignupModalOpen(false);
-                triggerPixel("SignupModalClose", "Closed signup flow early");
-              }}
-              className="absolute top-4 right-4 text-slate-450 hover:text-slate-700 font-bold"
-            >
-              ✕
-            </button>
-
-            <div className="border-b pb-2">
-              <h3 className="font-bold text-slate-900 text-sm">Account Registration Wizard</h3>
-              <p className="text-[10px] text-slate-400 mt-0.5">Step {signupStep} of 3: Onboarding parameters</p>
-            </div>
-
-            <form onSubmit={handleSignupSubmit} className="space-y-4">
-              
-              {/* Step 1: Info inputs */}
+            <form onSubmit={handleSignupSubmit} className="space-y-3">
               {signupStep === 1 && (
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-[10px] font-bold uppercase text-slate-400">Full Name</label>
-                    <input
-                      type="text"
-                      placeholder="Enter name..."
-                      value={signupName}
-                      onChange={(e) => setSignupName(e.target.value)}
-                      className="w-full mt-1 px-3 py-2 border rounded-xl bg-slate-50 outline-none"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold uppercase text-slate-400">Email Address</label>
-                    <input
-                      type="email"
-                      placeholder="john@business.com"
-                      value={signupEmail}
-                      onChange={(e) => setSignupEmail(e.target.value)}
-                      className="w-full mt-1 px-3 py-2 border rounded-xl bg-slate-50 outline-none"
-                      required
-                    />
-                  </div>
-                </div>
+                <>
+                  <input type="text" placeholder="Full name" value={signupName} onChange={(e) => setSignupName(e.target.value)} className="w-full px-3 py-2.5 text-sm border rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-violet-300" required />
+                  <input type="email" placeholder="Work email" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} className="w-full px-3 py-2.5 text-sm border rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-violet-300" required />
+                </>
               )}
-
-              {/* Step 2: Org & Plan setup */}
               {signupStep === 2 && (
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-[10px] font-bold uppercase text-slate-400">Company Name</label>
-                    <input
-                      type="text"
-                      placeholder="Acme Enterprise"
-                      value={signupOrgName}
-                      onChange={(e) => setSignupOrgName(e.target.value)}
-                      className="w-full mt-1 px-3 py-2 border rounded-xl bg-slate-50 outline-none"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold uppercase text-slate-400">Selected Plan Tier</label>
-                    <select
-                      value={signupPlan}
-                      onChange={(e) => setSignupPlan(e.target.value)}
-                      className="w-full mt-1 px-3 py-2 border rounded-xl bg-slate-50 outline-none"
-                    >
-                      <option value="starter">Starter Plan ($29/mo)</option>
-                      <option value="growth">Growth Plan ($79/mo)</option>
-                      <option value="agency">Agency Plan ($249/mo)</option>
-                      <option value="enterprise">Enterprise Custom</option>
-                    </select>
-                  </div>
-                </div>
+                <>
+                  <input type="text" placeholder="Company name" value={signupOrg} onChange={(e) => setSignupOrg(e.target.value)} className="w-full px-3 py-2.5 text-sm border rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-violet-300" required />
+                  <input type="url" placeholder="Website URL (we'll build your first campaign)" value={signupUrl} onChange={(e) => setSignupUrl(e.target.value)} className="w-full px-3 py-2.5 text-sm border rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-violet-300" required />
+                </>
               )}
-
-              {/* Step 3: Brand Details */}
-              {signupStep === 3 && (
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-[10px] font-bold uppercase text-slate-400">Brand URL to Scrape</label>
-                    <input
-                      type="url"
-                      placeholder="https://acmecorp.com"
-                      value={demoBizUrl}
-                      onChange={(e) => setDemoBizUrl(e.target.value)}
-                      className="w-full mt-1 px-3 py-2 border rounded-xl bg-slate-50 outline-none"
-                      required
-                    />
-                  </div>
-                  <p className="text-[10px] text-slate-400 leading-relaxed font-semibold">
-                    Upon submitting, Vibe OS will scan your site to build target customer profiles and campaigns guidelines automatically.
-                  </p>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl transition"
-              >
-                {signupStep < 3 ? "Continue" : "Complete & Launch Studio"}
+              <button type="submit" className="w-full py-2.5 btn-primary text-sm font-bold">
+                {signupStep < 2 ? "Continue" : "Launch AI Marketing Studio →"}
               </button>
             </form>
           </div>
         </div>
       )}
 
-      {/* 4. CALENDLY DEMO BOOKING MODAL */}
-      {demoModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border rounded-2xl shadow-xl max-w-sm w-full p-6 space-y-4 animate-scale-in relative text-xs">
-            <button
-              onClick={() => {
-                setDemoModalOpen(false);
-                triggerPixel("DemoModalClose", "Closed demo booking popup");
-              }}
-              className="absolute top-4 right-4 text-slate-450 hover:text-slate-700 font-bold"
-            >
-              ✕
-            </button>
-
-            <div className="border-b pb-2 text-center">
-              <h3 className="font-bold text-slate-900 text-sm">Schedule Demo Presentation</h3>
-              <p className="text-[10px] text-slate-400 mt-0.5">Calendly Direct Integration Simulator</p>
-            </div>
-
+      {/* ── DEMO / STRATEGY CALL MODAL ── */}
+      {demoOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 animate-pop relative max-h-[90vh] overflow-y-auto">
+            <button onClick={() => setDemoOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 font-bold">✕</button>
             {demoConfirmed ? (
               <div className="text-center py-6 space-y-3">
-                <span className="text-2xl">📅</span>
-                <h4 className="font-black text-emerald-800">Demo Call Scheduled!</h4>
-                <p className="text-[11px] text-slate-500 leading-relaxed max-w-xs mx-auto font-medium">
-                  Confirm booking: <strong>{demoDate}</strong> at <strong>{demoTime}</strong>. We dispatched invitations to your email address.
-                </p>
+                <span className="text-3xl">✓</span>
+                <h3 className="font-black text-emerald-700">Strategy Call Booked!</h3>
+                <p className="text-xs text-slate-500">We&apos;ll reach out to {demoBusiness} to confirm your call on {demoDate} at {demoTime}.</p>
               </div>
             ) : (
-              <form onSubmit={handleBookDemo} className="space-y-4">
+              <>
                 <div>
-                  <label className="text-[10px] font-bold uppercase text-slate-400">Select Date</label>
-                  <input
-                    type="date"
-                    value={demoDate}
-                    onChange={(e) => setDemoDate(e.target.value)}
-                    className="w-full mt-1 px-3 py-2 border rounded-xl bg-slate-50 outline-none"
-                    required
-                  />
+                  <h3 className="font-black text-slate-900">Book Strategy Call</h3>
+                  <p className="text-xs text-slate-500 mt-1">Tell us about your marketing — we&apos;ll show you how to save hours every week.</p>
                 </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-slate-400">Select Time Slot</label>
-                  <select
-                    value={demoTime}
-                    onChange={(e) => setDemoTime(e.target.value)}
-                    className="w-full mt-1 px-3 py-2 border rounded-xl bg-slate-50 outline-none cursor-pointer"
-                    required
-                  >
-                    <option value="">Choose slot...</option>
-                    <option value="09:00 AM EST">09:00 AM EST</option>
-                    <option value="11:30 AM EST">11:30 AM EST</option>
-                    <option value="02:00 PM EST">02:00 PM EST</option>
-                    <option value="04:30 PM EST">04:30 PM EST</option>
+                <form onSubmit={handleDemoSubmit} className="space-y-3">
+                  <input type="text" placeholder="Business name" value={demoBusiness} onChange={(e) => setDemoBusiness(e.target.value)} className="w-full px-3 py-2.5 text-sm border rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-violet-300" required />
+                  <select value={demoTeamSize} onChange={(e) => setDemoTeamSize(e.target.value)} className="w-full px-3 py-2.5 text-sm border rounded-xl bg-slate-50 outline-none" required>
+                    <option value="">Team size</option>
+                    <option value="1">Just me</option>
+                    <option value="2-5">2–5 people</option>
+                    <option value="6-15">6–15 people</option>
+                    <option value="16+">16+ people</option>
                   </select>
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl transition"
-                >
-                  Confirm Calendar Slot
-                </button>
-              </form>
+                  <select value={demoBudget} onChange={(e) => setDemoBudget(e.target.value)} className="w-full px-3 py-2.5 text-sm border rounded-xl bg-slate-50 outline-none" required>
+                    <option value="">Monthly marketing budget</option>
+                    <option value="<1k">Under $1,000</option>
+                    <option value="1k-5k">$1,000 – $5,000</option>
+                    <option value="5k-20k">$5,000 – $20,000</option>
+                    <option value="20k+">$20,000+</option>
+                  </select>
+                  <input type="text" placeholder="Biggest marketing challenge" value={demoChallenge} onChange={(e) => setDemoChallenge(e.target.value)} className="w-full px-3 py-2.5 text-sm border rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-violet-300" required />
+                  <input type="text" placeholder="Current tools (e.g. HubSpot, Canva, Mailchimp)" value={demoTools} onChange={(e) => setDemoTools(e.target.value)} className="w-full px-3 py-2.5 text-sm border rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-violet-300" />
+                  <input type="date" value={demoDate} onChange={(e) => setDemoDate(e.target.value)} className="w-full px-3 py-2.5 text-sm border rounded-xl bg-slate-50 outline-none" required />
+                  <select value={demoTime} onChange={(e) => setDemoTime(e.target.value)} className="w-full px-3 py-2.5 text-sm border rounded-xl bg-slate-50 outline-none" required>
+                    <option value="">Preferred time</option>
+                    <option value="9:00 AM">9:00 AM</option>
+                    <option value="11:00 AM">11:00 AM</option>
+                    <option value="2:00 PM">2:00 PM</option>
+                    <option value="4:00 PM">4:00 PM</option>
+                  </select>
+                  <button type="submit" className="w-full py-2.5 btn-primary text-sm font-bold">Book Strategy Call</button>
+                </form>
+              </>
             )}
           </div>
         </div>
       )}
-
-      {/* 5. EXIT INTENT POPUP */}
-      {exitIntentOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border rounded-2xl shadow-xl max-w-sm w-full p-6 space-y-4 text-center text-xs animate-scale-in relative">
-            <button
-              onClick={() => setExitIntentOpen(false)}
-              className="absolute top-4 right-4 text-slate-450 hover:text-slate-700 font-bold"
-            >
-              ✕
-            </button>
-            <span className="text-3xl">🎁</span>
-            <h3 className="font-extrabold text-slate-950 text-sm">Wait! Don&apos;t leave empty-handed</h3>
-            <p className="text-[11px] text-slate-500 leading-relaxed font-semibold">
-              Get an exclusive <strong>20% discount coupon code</strong> on your Growth Plan subscription. Start trial credits now!
-            </p>
-            <div className="p-3 bg-violet-50 border border-violet-100 rounded-xl font-mono text-xs text-violet-905 font-black uppercase select-all">
-              VIBESTUDIO20
-            </div>
-            <button
-              onClick={() => {
-                setExitIntentOpen(false);
-                setSignupPlan("growth");
-                setSignupModalOpen(true);
-                setSignupStep(1);
-                triggerPixel("ExitIntentCouponClaimed", "Clicked claim coupon in exit intent modal");
-              }}
-              className="w-full py-2.5 bg-violet-600 hover:bg-violet-750 text-white font-bold rounded-xl transition"
-            >
-              Claim Coupon & Start Trial
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* 6. CONVERSION STICKY CTA */}
-      <div className="fixed bottom-0 left-0 right-0 h-12 bg-slate-950 text-white border-t border-slate-900 z-40 px-8 flex items-center justify-between shadow-2xl text-xs">
-        <span className="hidden sm:inline font-semibold">Scale campaigns velocity with Vibe Strategist.</span>
-        <div className="flex items-center gap-2 mx-auto sm:mx-0">
-          <span className="bg-emerald-500 text-slate-950 text-[8px] font-black uppercase px-1.5 py-0.5 rounded">Offer</span>
-          <span className="text-[10px] text-slate-400">1,000 free tokens included.</span>
-          <button
-            onClick={() => {
-              setSignupModalOpen(true);
-              setSignupStep(1);
-              triggerPixel("StickyCtaClick", "Clicked sticky footer trial button");
-            }}
-            className="bg-white text-slate-950 hover:bg-slate-100 font-extrabold px-3 py-1.5 rounded-lg text-[10px] transition"
-          >
-            Start Free
-          </button>
-        </div>
-      </div>
-
-      {/* 7. LIVE SUPPORT CHAT WINDOW */}
-      <div className="fixed bottom-16 right-6 z-40 flex flex-col items-end gap-2 text-xs">
-        {chatOpen && (
-          <div className="bg-white border rounded-2xl shadow-xl w-64 p-4 space-y-3 flex flex-col justify-between animate-scale-in h-80">
-            <div className="flex justify-between items-center border-b pb-2">
-              <span className="font-bold text-slate-900">Vibe Support Agent</span>
-              <button onClick={() => setChatOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold">✕</button>
-            </div>
-
-            {/* Logs */}
-            <div className="flex-1 overflow-y-auto space-y-2.5 p-1 font-medium text-[11px] leading-relaxed text-slate-650 bg-slate-50 border rounded-xl">
-              {chatLogs.map((log, i) => (
-                <div key={i} className={`p-2 rounded-lg ${
-                  log.author === "user" ? "bg-violet-600 text-white self-end" : "bg-white border text-slate-700"
-                }`}>
-                  {log.text}
-                </div>
-              ))}
-            </div>
-
-            {/* Input */}
-            <form onSubmit={handleSendChatMessage} className="flex gap-1">
-              <input
-                type="text"
-                placeholder="Ask support..."
-                value={chatMessage}
-                onChange={(e) => setChatMessage(e.target.value)}
-                className="flex-1 px-2.5 py-1 text-xs border rounded-xl bg-slate-50 outline-none"
-                required
-              />
-              <button className="px-3 py-1 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl">Send</button>
-            </form>
-          </div>
-        )}
-
-        <button
-          onClick={() => {
-            setChatOpen(!chatOpen);
-            triggerPixel("ChatBoxToggled", `Set chat open state to ${!chatOpen}`);
-          }}
-          className="h-10 w-10 rounded-full bg-slate-950 hover:bg-slate-800 text-white shadow-2xl flex items-center justify-center text-lg transition border"
-        >
-          💬
-        </button>
-      </div>
-
-      {/* 8. MARKETING CONVERSION METRIC LEDGER MOCK */}
-      <div className="card p-5 border border-slate-200 bg-white max-w-xl mx-auto shadow-sm text-xs space-y-3">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block border-b pb-1">Marketing Conversion Telemetry Logs</span>
-        <div className="space-y-2 max-h-28 overflow-y-auto font-mono text-[9px] text-slate-450">
-          {pixelLogs.map((log, i) => (
-            <div key={i} className="flex justify-between items-start border-b border-slate-50 pb-1 last:border-0">
-              <span className="font-black text-indigo-750">{log.event} pixel event</span>
-              <span className="text-slate-600 font-semibold">{log.details}</span>
-              <span className="text-slate-400 font-normal">{new Date(log.timestamp).toLocaleTimeString()}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
     </div>
   );
 }

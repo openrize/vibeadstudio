@@ -9,16 +9,29 @@ const inter = Inter({
 });
 
 export const metadata = {
-  title: "Vibe Strategist — AI Marketing Strategist System",
+  title: "AI Marketing Studio | AI Campaign Creation & Marketing Automation Platform",
   description:
-    "Build a full AI marketing strategy from any business website. Brand intelligence, extracted insights, and six full-funnel campaign strategies.",
+    "Create campaigns, generate content, automate marketing, and scale growth with AI Marketing Studio. Your AI marketing team — plan, create, and launch campaigns in minutes.",
+  keywords: [
+    "AI marketing platform",
+    "campaign automation",
+    "content generation",
+    "marketing automation",
+    "AI content",
+  ],
   icons: {
     icon: "/favicon.svg",
+  },
+  openGraph: {
+    title: "AI Marketing Studio | AI Campaign Creation & Marketing Automation Platform",
+    description:
+      "Create campaigns, generate content, automate marketing, and scale growth with AI Marketing Studio.",
+    type: "website",
   },
 };
 
 export const viewport = {
-  themeColor: "#0b0d12",
+  themeColor: "#f7f8fb",
 };
 
 export default function RootLayout({ children }) {
