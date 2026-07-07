@@ -9,23 +9,23 @@ const inter = Inter({
 });
 
 export const metadata = {
-  title: "AI Marketing Studio | AI Campaign Creation & Marketing Automation Platform",
+  title: "Vibe Strategist | AI Marketing Strategy & Campaign Generator",
   description:
-    "Create campaigns, generate content, automate marketing, and scale growth with AI Marketing Studio. Your AI marketing team — plan, create, and launch campaigns in minutes.",
+    "Turn any business website into AI-generated campaign strategy, brand insights, messaging angles, and full-funnel marketing ideas.",
   keywords: [
-    "AI marketing platform",
-    "campaign automation",
-    "content generation",
-    "marketing automation",
-    "AI content",
+    "AI marketing strategy",
+    "campaign generator",
+    "brand intelligence",
+    "full-funnel marketing",
+    "marketing strategy workspace",
   ],
   icons: {
     icon: "/favicon.svg",
   },
   openGraph: {
-    title: "AI Marketing Studio | AI Campaign Creation & Marketing Automation Platform",
+    title: "Vibe Strategist | AI Marketing Strategy & Campaign Generator",
     description:
-      "Create campaigns, generate content, automate marketing, and scale growth with AI Marketing Studio.",
+      "Turn any business website into AI-generated campaign strategy, brand insights, messaging angles, and full-funnel marketing ideas.",
     type: "website",
   },
 };

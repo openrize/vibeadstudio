@@ -1,26 +1,24 @@
 import Link from "next/link";
 
 const FOOTER_LINKS = {
-  Platform: [
-    { href: "/#platform", label: "AI Content" },
-    { href: "/#platform", label: "Campaign Builder" },
-    { href: "/#platform", label: "Social Media" },
-    { href: "/#platform", label: "Email Marketing" },
-    { href: "/#platform", label: "Landing Pages" },
-    { href: "/#platform", label: "Analytics" },
+  Product: [
+    { href: "/#how-it-works", label: "How It Works" },
+    { href: "/#output-preview", label: "Sample Output" },
+    { href: "/#what-you-get", label: "What You Get" },
+    { href: "/#features", label: "Features" },
+    { href: "/#pricing", label: "Pricing" },
   ],
-  Solutions: [
-    { href: "/#solutions", label: "Small Business" },
-    { href: "/#solutions", label: "Agencies" },
-    { href: "/#solutions", label: "Startups" },
-    { href: "/#solutions", label: "Marketing Teams" },
+  Audience: [
+    { href: "/#who-its-for", label: "Agencies" },
+    { href: "/#who-its-for", label: "Founders" },
+    { href: "/#who-its-for", label: "Marketers" },
+    { href: "/#who-its-for", label: "SaaS Teams" },
+    { href: "/#who-its-for", label: "Local Businesses" },
   ],
   Company: [
-    { href: "/#pricing", label: "Pricing" },
-    { href: "/#templates", label: "Templates" },
-    { href: "/#outcomes", label: "Case Studies" },
-    { href: "/#faq", label: "Resources" },
-    { href: "/contact", label: "Book Demo" },
+    { href: "/#limitations", label: "Trust & AI Limits" },
+    { href: "/#pricing", label: "Join Beta" },
+    { href: "/contact", label: "Contact" },
   ],
   Legal: [
     { href: "/privacy", label: "Privacy Policy" },
@@ -36,20 +34,23 @@ export default function SiteFooter() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-10">
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-3">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-blue-600 text-white text-xs">◆</span>
-              <span className="font-bold text-slate-900 text-sm">AI Marketing Studio</span>
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-brand-600 to-accent-600 text-white text-xs">
+                ◆
+              </span>
+              <span className="font-bold text-ink-900 text-sm">Vibe Strategist</span>
             </div>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Your AI Marketing Team — create, launch, and scale campaigns in minutes, not days.
+            <p className="text-xs text-ink-500 leading-relaxed">
+              An AI strategy workspace that turns any website into full-funnel campaign ideas, messaging, and growth
+              direction.
             </p>
           </div>
           {Object.entries(FOOTER_LINKS).map(([group, links]) => (
             <div key={group}>
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-3">{group}</h4>
+              <h4 className="text-[10px] font-bold uppercase tracking-wider text-ink-400 mb-3">{group}</h4>
               <ul className="space-y-2">
                 {links.map((l) => (
                   <li key={l.label}>
-                    <Link href={l.href} className="text-xs text-slate-600 hover:text-violet-700 transition-colors">
+                    <Link href={l.href} className="text-xs text-ink-600 hover:text-brand-700 transition-colors">
                       {l.label}
                     </Link>
                   </li>
@@ -58,11 +59,15 @@ export default function SiteFooter() {
             </div>
           ))}
         </div>
-        <div className="border-t border-slate-100 pt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs text-slate-400">
-          <div>© {new Date().getFullYear()} AI Marketing Studio</div>
+        <div className="border-t border-ink-100 pt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs text-ink-400">
+          <div>© {new Date().getFullYear()} Vibe Strategist</div>
           <div className="flex items-center gap-4">
-            <Link href="/#pricing" className="hover:text-slate-700 transition-colors">Login</Link>
-            <Link href="/#pricing" className="hover:text-slate-700 transition-colors font-semibold text-violet-600">Start Free Trial</Link>
+            <Link href="/#pricing" className="hover:text-ink-700 transition-colors">
+              Join Beta
+            </Link>
+            <Link href="/#hero" className="hover:text-ink-700 transition-colors font-semibold text-brand-600">
+              Build Strategy
+            </Link>
           </div>
         </div>
       </div>

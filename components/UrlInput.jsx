@@ -12,9 +12,17 @@ const SAMPLES = [
 const INVALID_URL_MSG =
   "Please enter a valid website URL (e.g. https://yourbrand.com).";
 
-export default function UrlInput({ onGenerate, loading, disabled }) {
+export default function UrlInput({
+  onGenerate,
+  loading,
+  disabled,
+  variant = "standalone",
+  onBuildStrategyClick,
+  onUrlSubmitted,
+}) {
   const [url, setUrl] = useState("");
   const [validationError, setValidationError] = useState("");
+  const isEmbedded = variant === "embedded";
 
   function submit(e) {
     e?.preventDefault?.();
@@ -28,6 +36,8 @@ export default function UrlInput({ onGenerate, loading, disabled }) {
     }
 
     setValidationError("");
+    onBuildStrategyClick?.(valid);
+    onUrlSubmitted?.(valid);
     onGenerate(valid);
   }
 
@@ -38,27 +48,33 @@ export default function UrlInput({ onGenerate, loading, disabled }) {
 
   return (
     <section className="w-full">
-      <div className="max-w-4xl mx-auto text-center">
-        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold border border-violet-200 bg-violet-50 text-violet-800">
-          AI Marketing Strategist · Brand Intelligence Engine
-        </span>
-        <h1 className="mt-5 text-3xl sm:text-5xl font-extrabold tracking-tight text-ink-900 leading-tight">
-          Build a Full AI Marketing Strategy From Any Business Website
-        </h1>
-        <p className="mt-4 text-base sm:text-lg text-ink-600 max-w-2xl mx-auto leading-relaxed">
-          Enter a website URL and the AI strategist will analyze the brand, audience, positioning, trust
-          signals, and campaign direction before generating full-funnel campaign strategies.
-        </p>
-      </div>
+      {!isEmbedded && (
+        <div className="max-w-4xl mx-auto text-center">
+          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold border border-violet-200 bg-violet-50 text-violet-800">
+            AI Strategy Workspace
+          </span>
+          <h1 className="mt-5 text-3xl sm:text-5xl font-extrabold tracking-tight text-ink-900 leading-tight">
+            Turn Any Website Into a Full-Funnel Marketing Strategy
+          </h1>
+          <p className="mt-4 text-base sm:text-lg text-ink-600 max-w-2xl mx-auto leading-relaxed">
+            Vibe Strategist analyzes a brand&apos;s website, audience, positioning, and trust signals to generate
+            campaign ideas, messaging angles, and growth strategy in minutes.
+          </p>
+        </div>
+      )}
 
       <form
         onSubmit={submit}
-        className="max-w-3xl mx-auto mt-8 card p-2 sm:p-3 flex flex-col sm:flex-row gap-2 sm:items-stretch shadow-xl border-violet-100/60 rounded-2xl"
+        className={`w-full flex flex-col sm:flex-row gap-2 sm:items-stretch ${
+          isEmbedded
+            ? "p-2 sm:p-2.5 rounded-2xl bg-white border border-ink-200/80 shadow-soft"
+            : "max-w-3xl mx-auto mt-8 card p-2 sm:p-3 shadow-xl border-violet-100/60 rounded-2xl"
+        }`}
         noValidate
       >
         <div className="flex flex-col flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-1 px-4 py-2">
-            <svg viewBox="0 0 24 24" className="h-5 w-5 text-violet-500 shrink-0" fill="none" aria-hidden>
+            <svg viewBox="0 0 24 24" className="h-5 w-5 text-brand-500 shrink-0" fill="none" aria-hidden>
               <path
                 d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 1 0-5.66-5.66l-1.5 1.5M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 1 0 5.66 5.66l1.5-1.5"
                 stroke="currentColor"
@@ -89,7 +105,7 @@ export default function UrlInput({ onGenerate, loading, disabled }) {
         <button
           type="submit"
           disabled={disabled || loading || !url.trim()}
-          className="btn-primary px-6 py-3.5 text-[15px] sm:w-auto w-full rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 border-0"
+          className="btn-primary px-6 py-3.5 text-[15px] sm:w-auto w-full rounded-xl"
         >
           {loading ? (
             <>
@@ -103,7 +119,7 @@ export default function UrlInput({ onGenerate, loading, disabled }) {
         </button>
       </form>
 
-      <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs text-ink-500">
+      <div className={`flex flex-wrap items-center justify-center gap-2 text-xs text-ink-500 ${isEmbedded ? "mt-3" : "mt-4"}`}>
         <span className="text-ink-400">Try:</span>
         {SAMPLES.map((s) => (
           <button
